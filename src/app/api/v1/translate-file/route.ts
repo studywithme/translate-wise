@@ -63,17 +63,23 @@ async function batchTranslateBlocks(blocks: { lines: string[] }[], lang: string,
     }
     // Gemini가 SRT 구조로 반환하면 SRT 파싱으로 블록 분리
     const parsedBlocks = parseSRT(translatedText);
+    const fixedBlocks = [];
     for (let j = 0; j < batch.length; j++) {
-      const origLines = batch[j].lines.length;
       let lines = parsedBlocks[j]?.lines || [];
+      // 누락된 경우 빈 줄로 채움
+      if (!parsedBlocks[j]) {
+        lines = batch[j].lines.map(() => "");
+      }
       // 줄 수 보정
+      const origLines = batch[j].lines.length;
       if (lines.length < origLines) {
         while (lines.length < origLines) lines.push("");
       } else if (lines.length > origLines) {
         lines = [ ...lines.slice(0, origLines-1), lines.slice(origLines-1).join(' ') ];
       }
-      translatedBlocks.push(lines);
+      fixedBlocks.push(lines);
     }
+    translatedBlocks.push(fixedBlocks);
     // 각 배치마다 1초 대기
     await new Promise(res => setTimeout(res, 1000));
   }
