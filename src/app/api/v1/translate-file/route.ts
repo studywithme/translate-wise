@@ -19,13 +19,25 @@ function buildSRT(blocks: { index: string; time: string; lines: string[] }[]) {
 
 // 블록 배치 번역 함수 (배치 크기 50, 각 배치 후 1초 대기)
 async function batchTranslateBlocks(blocks: { lines: string[] }[], lang: string, model: string) {
-  const batchSize = 50;
+  const batchSize = 10;
   let translatedBlocks: string[][] = [];
+  // 언어명 매핑 (필요시 확장)
+  const langMap: Record<string, string> = {
+    en: "영어",
+    ja: "일본어",
+    zh: "중국어",
+    de: "독일어",
+    fr: "프랑스어",
+    es: "스페인어",
+    // 필요시 추가
+  };
+  const langLabel = langMap[lang] || lang;
   for (let i = 0; i < blocks.length; i += batchSize) {
     const batch = blocks.slice(i, i + batchSize);
     // 각 블록을 [번호]\n내용 형식으로 합침
     const promptBlocks = batch.map((block, idx) => `[#${i + idx + 1}]\n${block.lines.join("\n")}`);
-    const prompt = `아래의 여러 SRT 자막 블록을 영어로 자연스럽게 번역해줘. 각 블록은 [#번호]로 구분되어 있음. 각 블록의 줄 수와 의미를 최대한 맞춰서, [#번호]별로 구분해서 반환해줘.\n\n${promptBlocks.join("\n\n")}`;
+    // 프롬프트: 메타데이터(번호, 시간)는 그대로, 한글만 선택 언어로 번역
+    const prompt = `아래 SRT 자막 블록들의 \"번호\"와 \"시간(영상 시작 -> 종료)\" 메타데이터는 그대로 두고, 한글 자막 부분만 자연스러운 ${langLabel}로 번역해줘. 각 블록은 [#번호]로 구분되어 있음.\n\n${promptBlocks.join("\n\n")}`;
     let translatedText = "";
     if (model === "gemini-1.5-flash") {
       const res = await fetch(
@@ -43,23 +55,21 @@ async function batchTranslateBlocks(blocks: { lines: string[] }[], lang: string,
       );
       const data = await res.json();
       translatedText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      // 번역 API 응답 로그 출력
+      console.log("[Gemini 번역 API 응답]", { lang, prompt, data, translatedText });
     } else {
       // 기타 모델은 필요시 추가
       translatedText = batch.map(b => b.lines.join("\n")).join("\n\n");
     }
-    // 번역 결과를 [#번호]별로 분리
-    const blockResults = translatedText.split(/\n\s*\[#\d+\]\s*/).slice(1); // 첫 split은 빈 문자열
-    // 각 블록 내 줄 수 맞추기
+    // Gemini가 SRT 구조로 반환하면 SRT 파싱으로 블록 분리
+    const parsedBlocks = parseSRT(translatedText);
     for (let j = 0; j < batch.length; j++) {
       const origLines = batch[j].lines.length;
-      let lines = (blockResults[j] || "").split(/\r?\n/);
-      // 빈 줄 제거 후, 원본 줄 수에 맞게 보정
-      lines = lines.filter(l => l.trim().length > 0);
+      let lines = parsedBlocks[j]?.lines || [];
+      // 줄 수 보정
       if (lines.length < origLines) {
-        // 부족하면 빈 줄 추가
         while (lines.length < origLines) lines.push("");
       } else if (lines.length > origLines) {
-        // 많으면 마지막 줄에 합침
         lines = [ ...lines.slice(0, origLines-1), lines.slice(origLines-1).join(' ') ];
       }
       translatedBlocks.push(lines);
