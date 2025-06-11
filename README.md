@@ -117,7 +117,7 @@ pm2 startup
 # (아직 git 초기화가 안 되어 있다면)
 git init
 
-git remote add origin https://github.com/your-username/your-repo.git
+git remote add origin https://github.com/studywithme/translate-wise.git
 
 git add .
 git commit -m "프로젝트 최초 커밋"
@@ -135,5 +135,37 @@ git push
 ```
 
 - GitHub Actions, Vercel 등과 연동하면 push 시 자동 배포 가능
+
+---
+
+## 9. Prisma(MySQL) 설정 및 서버 실행 방법
+
+### 1) 패키지 설치
+```bash
+npm install @prisma/client prisma bcryptjs jsonwebtoken
+npm install -D @types/bcryptjs @types/jsonwebtoken
+```
+
+### 2) Prisma 클라이언트 생성 및 DB 초기화
+```bash
+npx prisma generate
+npx prisma db push
+```
+- `prisma/schema.prisma` 파일을 MySQL에 맞게 작성해야 합니다.
+- `.env` 파일에 MySQL 연결 정보를 반드시 입력하세요.
+
+### 3) 개발 서버 실행
+```bash
+npm run dev
+```
+
+### 4) 프로덕션 빌드 및 실행
+```bash
+npm run build
+npm start
+```
+
+- 서버 실행 전 반드시 DB와 환경변수 설정이 완료되어야 합니다.
+- API, 인증, 요금제, 사용량 추적 등은 Prisma(MySQL) 기반으로 동작합니다.
 
 ---
