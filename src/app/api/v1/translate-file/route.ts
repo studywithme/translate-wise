@@ -79,7 +79,7 @@ async function batchTranslateBlocks(blocks: { lines: string[] }[], lang: string,
       }
       fixedBlocks.push(lines);
     }
-    translatedBlocks.push(fixedBlocks);
+    translatedBlocks.push(...fixedBlocks);
     // 각 배치마다 1초 대기
     await new Promise(res => setTimeout(res, 1000));
   }
