@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 // Gemini 1.5 Flash 번역 프록시
 export async function POST(req: NextRequest) {
-  const { text, targetLanguages } = await req.json();
+  // 요청에서 max_tokens도 받아옴 (없으면 1024)
+  const { text, targetLanguages, max_tokens } = await req.json();
   // 환경변수에서 Gemini API 키 가져오기
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -12,8 +13,8 @@ export async function POST(req: NextRequest) {
   // 각 언어별로 번역 결과 생성
   const results: Record<string, string> = {};
   for (const lang of targetLanguages) {
-    // 실제로는 system prompt 등으로 언어 지정 필요
-    const prompt = `Translate the following Korean text to ${lang}: ${text}`;
+    // 프롬프트: 입력 언어에 상관없이 동작하도록 수정
+    const prompt = `Translate the following text to ${lang}: ${text}`;
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
       {
@@ -23,7 +24,8 @@ export async function POST(req: NextRequest) {
           contents: [
             { role: "user", parts: [{ text: prompt }] }
           ],
-          generationConfig: { temperature: 0.3, maxOutputTokens: 1024 },
+          // max_tokens가 있으면 사용, 없으면 1024
+          generationConfig: { temperature: 0.3, maxOutputTokens: max_tokens || 1024 },
         }),
       }
     );

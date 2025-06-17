@@ -9,6 +9,7 @@ export default function NavBar() {
   const pathname = usePathname();
   // 메뉴 목록
   const menus = [
+    { name: '번역 업무', href: '/translate-task' },
     { name: '컨텐츠 번역', href: '/' },
     { name: '영상 자막 파일 번역', href: '/subtitle' },
   ];
