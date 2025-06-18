@@ -16,7 +16,7 @@ export default function NavBar() {
   return (
     <nav className="w-full bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 mb-6 shadow-sm">
       <div className="max-w-4xl mx-auto flex items-center h-14 px-4 gap-4">
-        <div className="font-bold text-lg text-blue-700">waise.io</div>
+        <div className="font-bold text-lg text-blue-700">ezTran AI</div>
         <div className="flex gap-2 ml-6">
           {/* 메뉴 반복 렌더링, 현재 경로면 클릭된 것처럼 스타일 적용 */}
           {menus.map(menu => {
