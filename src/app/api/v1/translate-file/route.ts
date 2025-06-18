@@ -19,25 +19,25 @@ function buildSRT(blocks: { index: string; time: string; lines: string[] }[]) {
 
 // 블록 배치 번역 함수 (배치 크기 50, 각 배치 후 1초 대기)
 async function batchTranslateBlocks(blocks: { lines: string[] }[], lang: string, model: string) {
-  const batchSize = 10;
+  const batchSize = 50; // 한 번에 50개 블록씩 번역
   let translatedBlocks: string[][] = [];
   // 언어명 매핑 (필요시 확장)
   const langMap: Record<string, string> = {
-    en: "영어",
-    ja: "일본어",
-    zh: "중국어",
-    de: "독일어",
-    fr: "프랑스어",
-    es: "스페인어",
+    en: "English",
+    ja: "Japanese",
+    zh: "Chinese",
+    de: "German",
+    fr: "French",
+    es: "Spanish",
     // 필요시 추가
   };
   const langLabel = langMap[lang] || lang;
   for (let i = 0; i < blocks.length; i += batchSize) {
     const batch = blocks.slice(i, i + batchSize);
-    // 각 블록을 [번호]\n내용 형식으로 합침
+    // 각 블록을 [#번호]\n내용 형식으로 합침
     const promptBlocks = batch.map((block, idx) => `[#${i + idx + 1}]\n${block.lines.join("\n")}`);
-    // 프롬프트: 메타데이터(번호, 시간)는 그대로, 한글만 선택 언어로 번역
-    const prompt = `아래 SRT 자막 블록들의 \"번호\"와 \"시간(영상 시작 -> 종료)\" 메타데이터는 그대로 두고, 한글 자막 부분만 자연스러운 ${langLabel}로 번역해줘. 각 블록은 [#번호]로 구분되어 있음.\n\n${promptBlocks.join("\n\n")}`;
+    // 프롬프트: 영어로, 메타데이터는 그대로, 한글만 자연스러운 타겟 언어로 번역
+    const prompt = `SRT subtitle blocks: Keep the \"index\" and \"time (start -> end)\" metadata as is, and translate only the Korean subtitle part into natural ${langLabel}.\n\n${promptBlocks.join("\n\n")}`;
     let translatedText = "";
     if (model === "gemini-1.5-flash") {
       const res = await fetch(
@@ -55,7 +55,7 @@ async function batchTranslateBlocks(blocks: { lines: string[] }[], lang: string,
       );
       const data = await res.json();
       translatedText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      // 번역 API 응답 로그 출력
+      // 한글 주석: Gemini 번역 API 응답 로그 출력
       console.log("[Gemini 번역 API 응답]", { lang, prompt, data, translatedText });
     } else {
       // 기타 모델은 필요시 추가
