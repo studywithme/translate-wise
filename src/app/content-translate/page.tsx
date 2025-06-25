@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSettings } from '../../contexts/SettingsContext';
+import { franc } from 'franc';
+import { ClipboardIcon } from '@heroicons/react/24/outline';
 
 export default function ContentTranslatePage() {
   const { settings, setIsSettingsOpen } = useSettings();
@@ -10,20 +12,42 @@ export default function ContentTranslatePage() {
   const [sourceLang, setSourceLang] = useState(settings.sourceLanguages[0]?.code || 'ko');
   const [activeTab, setActiveTab] = useState(settings.targetLanguages[0]?.code || 'en');
   const [isTranslating, setIsTranslating] = useState(false);
+  const [isValidating, setIsValidating] = useState(false); // 검증 중 상태
   const [validateSourceLang, setValidateSourceLang] = useState(sourceLang); // 검증용 원본 언어
   const [validationResult, setValidationResult] = useState(''); // 검증 결과
+  const [detectedLang, setDetectedLang] = useState(''); // 감지된 언어 코드
+
+  // franc(ISO 639-3) → 639-1 매핑
+  const iso3to1Map: Record<string, string> = { kor: 'ko', eng: 'en', jpn: 'ja', cmn: 'zh', spa: 'es', fra: 'fr', deu: 'de', ita: 'it', rus: 'ru', por: 'pt' };
+  // 감지된 언어의 639-1 코드
+  const detectedLang1 = useMemo(() => iso3to1Map[detectedLang] || detectedLang, [detectedLang]);
+
+  // 한글 주석: string 인덱스 시그니처 추가로 타입 에러 방지
+  const langNameMap: Record<string, string> = {
+    ko: '한국어', en: '영어', ja: '일본어', zh: '중국어', es: '스페인어', fr: '프랑스어', de: '독일어', it: '이탈리아어', ru: '러시아어', pt: '포르투갈어', auto: '자동인식'
+  };
+
+  // 한글 주석: 원본 언어 자동인식 기능
+  useEffect(() => {
+    if (settings.sourceLanguages.some(lang => lang.code === 'auto') && sourceText.trim().length > 0) {
+      const code = franc(sourceText);
+      setDetectedLang(code);
+      const map: Record<string, string> = { kor: 'ko', eng: 'en', jpn: 'ja', cmn: 'zh', spa: 'es', fra: 'fr', deu: 'de', ita: 'it', rus: 'ru', por: 'pt' };
+      const mapped = map[code] || code;
+      setSourceLang('auto'); // 한글 주석: 드롭다운에서 자동인식이 선택되도록
+    }
+  }, [settings.sourceLanguages, sourceText]);
 
   // 번역 함수: 현재 탭 언어만 번역
   const handleTranslate = async () => {
     if (!sourceText.trim()) return;
     setIsTranslating(true);
+    setIsValidating(false); // 번역 시작 시 검증 중 상태 해제
     try {
-      // 이미 번역된 경우 재요청하지 않음
       if (translatedTexts[activeTab]) {
         setIsTranslating(false);
         return;
       }
-      // 한글 주석: gemini-translate API로 현재 탭 언어만 번역
       const response = await fetch('/api/gemini-translate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -75,10 +99,9 @@ export default function ContentTranslatePage() {
   // 검증하기 함수: 타깃 언어 번역 결과를 선택한 원본 언어로 다시 번역
   const handleValidate = async () => {
     if (!translatedTexts[activeTab]) return;
-    setIsTranslating(true);
+    setIsValidating(true);
     setValidationResult('');
     try {
-      // 한글 주석: 타깃 언어 번역 결과를 validateSourceLang(원본 언어)로 다시 번역
       const response = await fetch('/api/gemini-translate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -96,7 +119,14 @@ export default function ContentTranslatePage() {
     } catch (error) {
       setValidationResult('검증 중 오류 발생');
     } finally {
-      setIsTranslating(false);
+      setIsValidating(false);
+    }
+  };
+
+  // 번역 결과 복사 함수
+  const handleCopyResult = () => {
+    if (translatedTexts[activeTab]) {
+      navigator.clipboard.writeText(translatedTexts[activeTab]);
     }
   };
 
@@ -129,7 +159,6 @@ export default function ContentTranslatePage() {
               <select 
                 value={sourceLang} 
                 onChange={(e) => {
-                  // 한글 주석: 원본 언어를 선택하면 검증 언어(activeTab)도 같이 변경
                   setSourceLang(e.target.value);
                   setActiveTab(e.target.value);
                 }}
@@ -139,6 +168,16 @@ export default function ContentTranslatePage() {
                   <option key={lang.code} value={lang.code}>{lang.name} ▼</option>
                 ))}
               </select>
+              {/* 한글 주석: 자동인식 시 감지된 언어를 한글로 안내 (폰트 크게) */}
+              {settings.sourceLanguages.some(lang => lang.code === 'auto') && detectedLang && (
+                <>
+                  <div className="mt-1 text-lg text-blue-600 dark:text-blue-300 font-semibold">감지된 언어: {langNameMap[detectedLang1] || detectedLang1}</div>
+                  {/* 한글 주석: 입력이 짧으면 감지 정확도 안내 */}
+                  {sourceText.length < 15 && (
+                    <div className="text-xs text-blue-500 mt-1">※ 입력이 짧으면 언어 감지 정확도가 낮아질 수 있습니다.</div>
+                  )}
+                </>
+              )}
             </div>
             {/* 텍스트 입력 */}
             <textarea
@@ -181,9 +220,17 @@ export default function ContentTranslatePage() {
             {/* 한글 주석: 탭처럼, 선택된 언어의 번역 결과만 보여줌 */}
             <div className="p-2 h-64 overflow-y-auto">
               {translatedTexts[activeTab] ? (
-                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 dark:bg-blue-900 dark:border-blue-700">
-                  <h3 className="font-medium text-blue-800 mb-2 dark:text-blue-200">{settings.targetLanguages.find(l => l.code === activeTab)?.name} 번역:</h3>
-                  <p className="text-gray-700 leading-relaxed dark:text-gray-100">{translatedTexts[activeTab]}</p>
+                <div className="relative p-4 bg-blue-50 rounded-lg border border-blue-200 dark:bg-blue-900 dark:border-blue-700">
+                  {/* 번역 결과만 표시, 언어명 제거 */}
+                  <p className="text-gray-700 leading-relaxed dark:text-gray-100 whitespace-pre-line">{translatedTexts[activeTab]}</p>
+                  {/* 복사 아이콘 버튼 */}
+                  <button
+                    onClick={handleCopyResult}
+                    className="absolute top-2 right-2 p-1 bg-white dark:bg-gray-800 rounded-full border border-gray-300 dark:border-gray-600 hover:bg-blue-100 dark:hover:bg-blue-700 transition"
+                    title="복사"
+                  >
+                    <ClipboardIcon className="w-5 h-5 text-blue-600 dark:text-blue-300" />
+                  </button>
                 </div>
               ) : (
                 <p className="text-gray-400 dark:text-gray-500">번역 결과가 여기에 표시됩니다.</p>
@@ -204,10 +251,10 @@ export default function ContentTranslatePage() {
             </select>
             <button
               onClick={handleValidate}
-              disabled={!translatedTexts[activeTab] || isTranslating}
+              disabled={!translatedTexts[activeTab] || isValidating}
               className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 dark:bg-green-800 dark:hover:bg-green-900 dark:disabled:bg-gray-700"
             >
-              ▶ 검증하기
+              ▶ {isValidating ? '검증 중...' : '검증하기'}
             </button>
           </div>
           {/* 한글 주석: 검증 결과 박스는 버튼 아래에 위치 */}

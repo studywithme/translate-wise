@@ -16,6 +16,10 @@ npx create-next-app@latest . --use-npm --tailwind --app --eslint --src-dir --imp
 ## 3. 의존성 설치
 ```bash
 npm install
+
+npm install franc --save
+npm install @heroicons/react
+
 ```
 
 ## 4. 개발 서버 실행

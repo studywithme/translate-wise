@@ -73,6 +73,30 @@ export default function SettingsModal() {
           <div className="mb-8">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">원본 언어 선택</h3>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {/* 한글 주석: 자동인식 체크박스 추가 */}
+              <label
+                className={`flex items-center p-3 rounded-lg border cursor-pointer transition-colors ${
+                  tempSettings.sourceLanguages.some(lang => lang.code === 'auto')
+                    ? 'bg-blue-50 border-blue-300 text-blue-700'
+                    : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={tempSettings.sourceLanguages.some(lang => lang.code === 'auto')}
+                  onChange={e => {
+                    let newList;
+                    if (e.target.checked) {
+                      newList = [...tempSettings.sourceLanguages, { code: 'auto', name: '자동인식' }];
+                    } else {
+                      newList = tempSettings.sourceLanguages.filter(lang => lang.code !== 'auto');
+                    }
+                    setTempSettings(prev => ({ ...prev, sourceLanguages: newList }));
+                  }}
+                  className="mr-3 w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium">자동인식</span>
+              </label>
               {defaultLanguages.map(language => {
                 // 한글 주석: 원본 언어도 여러 개 선택 가능(체크박스)
                 const isSelected = tempSettings.sourceLanguages.some(lang => lang.code === language.code);
@@ -97,7 +121,7 @@ export default function SettingsModal() {
               })}
             </div>
             {/* 한글 안내: 여러 개의 원본 언어를 선택할 수 있습니다. */}
-            <p className="text-xs text-gray-500 mt-2">※ 여러 개의 원본 언어를 선택할 수 있습니다.</p>
+            <p className="text-xs text-gray-500 mt-2">※ 여러 개의 원본 언어 또는 자동인식을 선택할 수 있습니다.</p>
           </div>
 
           {/* 번역 대상 언어 설정 */}

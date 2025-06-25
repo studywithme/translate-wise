@@ -9,8 +9,10 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@heroicons/react": "^2.2.0",
     "@prisma/client": "^6.9.0",
     "bcryptjs": "^3.0.2",
+    "franc": "^6.2.0",
     "jsonwebtoken": "^9.0.2",
     "jszip": "^3.10.1",
     "next": "15.3.3",
