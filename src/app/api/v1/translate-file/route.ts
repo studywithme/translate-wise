@@ -42,12 +42,12 @@ function parseGeminiBlocks(text: string) {
   return blocks as { index: string; lines: string[] }[];
 }
 
-// index(번호) 기준으로 10단위로 SRT 블록을 나누어 번역하는 함수
+// index(번호) 기준으로 100단위로 SRT 블록을 나누어 번역하는 함수
 async function splitByIndexAndTranslate(
   blocks: { index: string; time: string; lines: string[] }[],
   lang: string,
   model: string,
-  batchSize: number = 20
+  batchSize: number = 100
 ) {
   // 번호가 숫자인 블록만 추출
   const numberedBlocks = blocks.filter(b => /^\d+$/.test(b.index));
@@ -167,7 +167,7 @@ export async function POST(req: NextRequest) {
   for (const lang of targetLanguages) {
     // 번역 대상만 추출
     const numberedBlocks = blocks.filter(b => /^\d+$/.test(b.index));
-    const translatedBlockLines = await splitByIndexAndTranslate(numberedBlocks, lang, model, 50);
+    const translatedBlockLines = await splitByIndexAndTranslate(numberedBlocks, lang, model, 500);
 
     console.log("blocks.length:", blocks.length);
     console.log("translatedBlockLines.length:", translatedBlockLines.length);

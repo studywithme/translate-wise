@@ -27,7 +27,7 @@ function buildSRT(blocks: { index: string; time: string; text: string }[]) {
 
 export default function SubtitlePage() {
   const [file, setFile] = useState<File | null>(null);
-  const [targetLangs, setTargetLangs] = useState<string[]>(["en", "ja", "zh"]);
+  const [targetLangs, setTargetLangs] = useState<string[]>(["en"]);
   const [downloadLinks, setDownloadLinks] = useState<{ lang: string; url: string; name: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -150,13 +150,15 @@ export default function SubtitlePage() {
               <input
                 type="checkbox"
                 value={lang.code}
-                checked={targetLangs.includes(lang.code)}
-                onChange={handleLangChange}
+                checked={lang.code === 'en'}
+                disabled={lang.code !== 'en'}
+                readOnly
               />
               {lang.label}
             </label>
           ))}
         </div>
+        <p className="text-xs text-gray-500 mt-2">※ 현재는 영어만 번역 대상으로 선택할 수 있습니다.</p>
       </div>
       <button
         className="px-6 py-2 bg-blue-600 text-white rounded disabled:opacity-50"

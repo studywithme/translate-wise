@@ -8,10 +8,11 @@ export default function NavBar() {
   // 현재 경로를 가져옴 (클라이언트에서 안전하게 동작)
   const pathname = usePathname();
   // 메뉴 목록
-  const menus = [
-    { name: '번역 업무', href: '/translate-task' },
-    { name: '영상 자막 파일 번역', href: '/subtitle' },
-    { name: '번역 비용 계산', href: '/cost-estimate' },
+  const menuItems = [
+    { name: '컨텐츠 번역', href: '/content-translate' },
+    { name: '자막 번역', href: '/subtitle' },
+    { name: '번역 작업', href: '/translate-task' },
+    { name: '비용 견적', href: '/cost-estimate' },
   ];
   return (
     <nav className="w-full bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 mb-6 shadow-sm">
@@ -19,7 +20,7 @@ export default function NavBar() {
         <div className="font-bold text-lg text-blue-700">ezTran AI</div>
         <div className="flex gap-2 ml-6">
           {/* 메뉴 반복 렌더링, 현재 경로면 클릭된 것처럼 스타일 적용 */}
-          {menus.map(menu => {
+          {menuItems.map(menu => {
             const isActive = pathname === menu.href;
             return (
               <Link
