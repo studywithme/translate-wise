@@ -77,7 +77,7 @@ export default function SubtitlePage() {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("targetLanguages", JSON.stringify(targetLangs));
-    formData.append("model", "gemini-1.5-flash"); // 필요시 모델 선택 UI 연동
+    formData.append("model", "deepl"); // 필요시 모델 선택 UI 연동
 
     // 파일 번역 API 호출
     const res = await fetch("/api/v1/translate-file", {

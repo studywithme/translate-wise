@@ -44,11 +44,8 @@ export default function ContentTranslatePage() {
     setIsTranslating(true);
     setIsValidating(false); // 번역 시작 시 검증 중 상태 해제
     try {
-      if (translatedTexts[activeTab]) {
-        setIsTranslating(false);
-        return;
-      }
-      const response = await fetch('/api/gemini-translate', {
+      // 항상 번역 실행: 기존 번역 결과가 있어도 무시
+      const response = await fetch('/api/deepl-translate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -75,7 +72,7 @@ export default function ContentTranslatePage() {
     if (!sourceText.trim() || translatedTexts[langCode]) return;
     setIsTranslating(true);
     try {
-      const response = await fetch('/api/gemini-translate', {
+      const response = await fetch('/api/deepl-translate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -102,7 +99,7 @@ export default function ContentTranslatePage() {
     setIsValidating(true);
     setValidationResult('');
     try {
-      const response = await fetch('/api/gemini-translate', {
+      const response = await fetch('/api/deepl-translate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

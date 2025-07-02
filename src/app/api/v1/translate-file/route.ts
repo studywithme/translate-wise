@@ -51,7 +51,7 @@ async function splitByIndexAndTranslate(
 ) {
   // 번호가 숫자인 블록만 추출
   const numberedBlocks = blocks.filter(b => /^\d+$/.test(b.index));
-  // 10개 단위로 그룹핑
+  // batchSize 단위로 그룹핑
   const groups: { index: number; blocks: { index: string; time: string; lines: string[] }[] }[] = [];
   let currentGroup: { index: number; blocks: { index: string; time: string; lines: string[] }[] } = { index: 1, blocks: [] };
   for (const block of numberedBlocks) {
@@ -66,7 +66,7 @@ async function splitByIndexAndTranslate(
   }
   if (currentGroup.blocks.length > 0) groups.push(currentGroup);
 
-  // 언어명 매핑
+  // 언어명 매핑 (Gemini용)
   const langMap: Record<string, string> = {
     en: "English",
     ja: "Japanese",
@@ -79,15 +79,47 @@ async function splitByIndexAndTranslate(
 
   let translatedBlocks: string[][] = [];
   for (const group of groups) {
-    // 각 블록을 [#번호]\n내용 형식으로 합침
-    const promptBlocks = group.blocks.map((block) => `[#${block.index}]\n${block.lines.join("\n")}`);
-    const prompt = `Translate only the Korean subtitle part in the following blocks into natural ${langLabel}.
+    if (model === "deepl") {
+      // DeepL 번역 API 호출 분기
+      const texts = group.blocks.map((block) => block.lines.join("\n"));
+      // 디버깅: 요청에 보낼 texts 출력
+      console.log("[DeepL][요청 texts]", texts);
+      // 서버 환경에서 절대경로 필요
+      const baseUrl = process.env.INTERNAL_API_BASE_URL || "http://localhost:3000";
+      const res = await fetch(`${baseUrl}/api/deepl-translate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: texts.join("\n\n"), // 블록별로 두 줄 띄우기
+          targetLanguages: [lang],
+        }),
+      });
+      const data = await res.json();
+      // 디버깅: DeepL 응답 전체 출력
+      console.log("[DeepL][응답 data]", data);
+      // 한글 주석: 번역 결과를 \n\n로 분할하여 각 블록에 매핑
+      const translated = (data.result?.[lang] || "").split(/\n\n/);
+      // 디버깅: 번역 결과 블록별 출력
+      console.log("[DeepL][블록별 번역 결과]", translated);
+      for (let i = 0; i < group.blocks.length; i++) {
+        const origLines = group.blocks[i].lines.length;
+        let lines = (translated[i] || "").split("\n");
+        if (lines.length < origLines) {
+          while (lines.length < origLines) lines.push("");
+        } else if (lines.length > origLines) {
+          lines = [ ...lines.slice(0, origLines-1), lines.slice(origLines-1).join(' ') ];
+        }
+        translatedBlocks.push(lines);
+      }
+      await new Promise(res => setTimeout(res, 1000));
+    } else if (model === "gemini-1.5-flash") {
+      // 기존 Gemini 로직
+      const promptBlocks = group.blocks.map((block) => `[#${block.index}]\n${block.lines.join("\n")}`);
+      const prompt = `Translate only the Korean subtitle part in the following blocks into natural ${langLabel}.
 Return the result as [#index]\\ntranslated lines. Do not add any explanation or commentary.
 
 ${promptBlocks.join("\n\n")}`;
-    //console.log("[DEBUG] prompt 전체", prompt);
-    let translatedText = "";
-    if (model === "gemini-1.5-flash") {
+      let translatedText = "";
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
         {
@@ -105,38 +137,35 @@ ${promptBlocks.join("\n\n")}`;
       translatedText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
       // 한글 주석: Gemini 번역 API 응답 로그 및 번역 결과 출력
       console.log("[DEBUG] translatedText 원본:", translatedText);
+      // Gemini가 [#번호]\n자막 형태로 반환하면 parseGeminiBlocks로 파싱
+      const parsedBlocks = parseGeminiBlocks(translatedText);
+      const fixedBlocks = [];
+      for (let j = 0; j < group.blocks.length; j++) {
+        let lines = parsedBlocks[j]?.lines || [];
+        if (!parsedBlocks[j]) {
+          lines = group.blocks[j].lines.map(() => "");
+        }
+        const origLines = group.blocks[j].lines.length;
+        if (lines.length < origLines) {
+          while (lines.length < origLines) lines.push("");
+        } else if (lines.length > origLines) {
+          lines = [ ...lines.slice(0, origLines-1), lines.slice(origLines-1).join(' ') ];
+        }
+        translatedBlocks.push(lines);
+      }
+      await new Promise(res => setTimeout(res, 1000));
     } else {
-      translatedText = group.blocks.map(b => b.lines.join("\n")).join("\n\n");
-    }
-    // Gemini가 [#번호]\n자막 형태로 반환하면 parseGeminiBlocks로 파싱
-    const parsedBlocks = parseGeminiBlocks(translatedText);
-    //console.log("[DEBUG] parsedBlocks:", parsedBlocks);
-    const fixedBlocks = [];
-    for (let j = 0; j < group.blocks.length; j++) {
-      let lines = parsedBlocks[j]?.lines || [];
-      if (!parsedBlocks[j]) {
-        lines = group.blocks[j].lines.map(() => "");
+      // 기타(원본 유지 등)
+      for (const block of group.blocks) {
+        translatedBlocks.push([...block.lines]);
       }
-      const origLines = group.blocks[j].lines.length;
-      if (lines.length < origLines) {
-        while (lines.length < origLines) lines.push("");
-      } else if (lines.length > origLines) {
-        lines = [ ...lines.slice(0, origLines-1), lines.slice(origLines-1).join(' ') ];
-      }
-      fixedBlocks.push(lines);
     }
-    translatedBlocks.push(...fixedBlocks);
-    await new Promise(res => setTimeout(res, 1000));
   }
   translatedBlocks.forEach((block, i) => {
     if (!Array.isArray(block)) {
       console.error(`[ERROR] block[${i}]이 배열이 아님:`, block);
     }
   });
-  const srt = buildSRT(blocks.map((block, i) => ({
-    ...block,
-    lines: translatedBlocks[i]
-  })));
   return translatedBlocks;
 }
 

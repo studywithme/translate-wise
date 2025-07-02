@@ -1,0 +1,37 @@
+# 클린 아키텍처 적용 가이드 (Clean Architecture Rule)
+
+이 프로젝트는 클린 아키텍처(Clean Architecture) 원칙을 따르는 것을 권장합니다. 각 계층의 책임과 폴더 구조, 예시 파일 매핑, 실전 적용 팁을 아래에 정리합니다.
+
+## 1. 계층별 책임
+- **도메인(Domain)**: 비즈니스 규칙, 엔티티, 유즈케이스, 순수 로직
+- **애플리케이션(Application)**: 도메인 유즈케이스 조합, 서비스, 인터페이스 추상화
+- **인프라(Infra)**: DB, 외부 API, 파일시스템 등 실제 구현체
+- **프레젠테이션(Presentation)**: UI, 라우트, 컨트롤러, 페이지, 컴포넌트
+
+## 2. 폴더 구조 예시
+- `/src/domain/` : 엔티티, 유즈케이스, 도메인 서비스
+- `/src/app/` : Next.js 라우트, 페이지, API 엔드포인트 (프레젠테이션)
+- `/src/components/` : UI 컴포넌트 (프레젠테이션)
+- `/src/contexts/` : 리액트 컨텍스트 (프레젠테이션/애플리케이션)
+- `/src/lib/` : 인프라/서비스/헬퍼 (DB, 인증, 외부 API)
+- `/prisma/` : DB 스키마 (인프라)
+
+## 3. 예시 파일 매핑
+- [src/lib/db.ts](mdc:src/lib/db.ts) → 인프라 계층 (DB 접근)
+- [src/lib/auth.ts](mdc:src/lib/auth.ts) → 인프라/애플리케이션 (인증)
+- [src/app/api/deepl-translate/route.ts](mdc:src/app/api/deepl-translate/route.ts) → 프레젠테이션/인프라 (API 라우트, 외부 API 호출)
+- [src/app/content-translate/page.tsx](mdc:src/app/content-translate/page.tsx) → 프레젠테이션 (UI, 상태관리)
+
+## 4. 실전 적용 팁
+- 도메인 로직(비즈니스 규칙)은 최대한 순수 함수/클래스로 분리
+- 인프라(외부 API, DB 등)는 인터페이스/헬퍼로 추상화 후 의존성 주입
+- 프레젠테이션(페이지, 컴포넌트)은 도메인/애플리케이션 계층에 직접 의존하지 않도록 주의
+- API 라우트는 인프라/도메인 계층을 호출하는 어댑터 역할
+
+## 5. 참고
+- 클린 아키텍처는 계층 간 의존성 방향(안쪽→바깥쪽만 허용)을 지키는 것이 핵심
+- 실제 프로젝트에서는 Next.js 구조와 유연하게 결합하여 적용
+description:
+globs:
+alwaysApply: false
+---

@@ -1,0 +1,37 @@
+---
+alwaysApply: false
+---
+# 프로젝트 구조 및 주요 가이드
+
+이 프로젝트는 Next.js 기반의 AI 다국어 번역 서비스입니다.
+
+## 주요 폴더 및 파일
+- [src/app/content-translate/page.tsx](mdc:src/app/content-translate/page.tsx): 메인 컨텐츠 번역 페이지(3단 레이아웃, 자동 언어 감지, 번역, 검증)
+- [src/app/subtitle/page.tsx](mdc:src/app/subtitle/page.tsx): 자막(SRT) 파일 번역 페이지
+- [src/app/api/gemini-translate/route.ts](mdc:src/app/api/gemini-translate/route.ts): Gemini 번역 API 프록시
+- [src/app/api/v1/translate-file/route.ts](mdc:src/app/api/v1/translate-file/route.ts): SRT 파일 번역 API
+- [src/components/SettingsModal.tsx](mdc:src/components/SettingsModal.tsx): 언어 설정 모달(원본/타겟/자동인식)
+- [src/components/NavBar.tsx](mdc:src/components/NavBar.tsx): 상단 네비게이션
+- [src/contexts/SettingsContext.tsx](mdc:src/contexts/SettingsContext.tsx): 언어 설정 전역 관리
+- [prisma/schema.prisma](mdc:prisma/schema.prisma): DB 스키마(사용시)
+- [README.md](mdc:README.md): 전체 실행/배포/설정 가이드
+
+## 주요 기능
+- 자동 언어 감지(franc)
+- Gemini API 기반 번역
+- SRT 자막 파일 번역 및 ZIP 다운로드
+- 번역 결과 검증(역번역)
+- 다크모드, 반응형 UI, 복사 버튼 등 편의 기능
+
+## 환경설정
+- .env.local에 OPENAI_API_KEY, GEMINI_API_KEY 필요
+- Tailwind, TypeScript, Heroicons 등 주요 패키지 사용
+
+## 개발/배포 가이드
+- 로컬: `npm install` → `npm run dev`
+- 빌드/배포: `npm run build` → `npm start`
+- pm2, systemd, Vercel 등 다양한 배포 지원
+
+---
+
+이 규칙 파일은 전체 프로젝트 구조와 각 주요 파일의 역할, 실행/배포 방법을 빠르게 파악할 수 있도록 요약합니다.
