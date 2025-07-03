@@ -11,6 +11,7 @@ export default function NavBar() {
   const menuItems = [
     { name: '컨텐츠 번역', href: '/content-translate' },
     { name: '자막 번역', href: '/subtitle' },
+    { name: 'HTML 번역', href: '/html-translate' },
     { name: '번역 작업', href: '/translate-task' },
     { name: '비용 견적', href: '/cost-estimate' },
   ];
