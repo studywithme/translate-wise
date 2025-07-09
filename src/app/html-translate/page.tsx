@@ -11,6 +11,7 @@ export default function HtmlTranslatePage() {
   const [targetLang, setTargetLang] = useState("en");
   const [activeTab, setActiveTab] = useState<'source' | 'preview'>("source");
   const [isFocused, setIsFocused] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   const handleTranslate = async () => {
     setIsTranslating(true);
@@ -100,6 +101,24 @@ export default function HtmlTranslatePage() {
         {/* 번역 결과 미리보기 */}
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-700 p-6 flex flex-col">
           <label className="font-semibold text-gray-700 dark:text-gray-100 mb-2">번역 결과 (HTML 유지)</label>
+          <div className="flex justify-end mb-2">
+            <button
+              onClick={async () => {
+                if (resultHtml) {
+                  await navigator.clipboard.writeText(resultHtml);
+                  setCopySuccess(true);
+                  setTimeout(() => setCopySuccess(false), 1500);
+                }
+              }}
+              className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-100 rounded hover:bg-gray-300 dark:hover:bg-gray-600 text-sm transition-colors disabled:opacity-50"
+              disabled={!resultHtml}
+            >
+              복사하기
+            </button>
+            {copySuccess && (
+              <span className="ml-2 text-green-600 dark:text-green-400 text-sm">복사됨!</span>
+            )}
+          </div>
           <div className="flex-1 min-h-[350px] border border-gray-200 dark:border-gray-700 rounded-lg bg-white p-4" style={{ background: '#fff' }}>
             {resultHtml ? (
               <div dangerouslySetInnerHTML={{ __html: resultHtml }} className="prose max-w-none" style={{ background: '#fff' }} />
