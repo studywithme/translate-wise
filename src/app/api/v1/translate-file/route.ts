@@ -1,241 +1,268 @@
-import { NextRequest, NextResponse } from "next/server";
-import JSZip from "jszip";
+import { NextRequest, NextResponse } from "next/server"
+import JSZip from "jszip"
 
-// SRT 파싱 함수 (블록 내 줄 배열 유지)
-function parseSRT(srt: string) {
-  // 윈도우/유닉스 줄바꿈 모두 지원
-  return srt
-    .replace(/\r\n/g, '\n')
-    .split(/\n{2,}/)
-    .map(block => {
-      const lines = block.split('\n').map(line => line.trim());
-      return {
-        index: lines[0],
-        time: lines[1],
-        lines: lines.slice(2),// 나머지 줄: 자막 내용 (여러 줄일 수 있음)
-      };
-    })
-    .filter(b => b.index && /^\d+$/.test(b.index) && b.time && b.lines.length > 0);
+const SUPPORTED_FILE_TYPES = ["srt", "vtt", "txt", "json", "csv"] as const
+
+type FileType = typeof SUPPORTED_FILE_TYPES[number]
+
+const deeplLangMap: Record<string, string> = {
+  en: "EN", ja: "JA", zh: "ZH", de: "DE", fr: "FR", es: "ES", it: "IT", ru: "RU", pt: "PT"
 }
 
-// SRT 재조립 함수
-function buildSRT(blocks: { index: string; time: string; lines: string[] }[]) {
-  // 각 블록의 내용을 디버깅
-  blocks.forEach((b, i) => {
-    console.log(`[buildSRT][${i}] index: ${b.index}, time: ${b.time}, lines:`, b.lines);
-  });
-  // 실제 SRT 조립
-  return blocks.map(b => `${b.index}\n${b.time}\n${b.lines.join("\n")}`.trim()).join("\n\n");
-}
-
-// Gemini 응답에서 [#번호]\n자막 형태를 파싱
-function parseGeminiBlocks(text: string) {
-  // [#번호]\n자막 ... [#번호]\n자막 ... 형태를 파싱
-  const blocks = text.split(/\n(?=\[#\d+\])/).map(block => {
-    const match = block.match(/^\[#(\d+)\]\n?([\s\S]*)$/);
-    if (!match) return null;
-    return {
-      index: match[1],
-      lines: match[2].split('\n').map(line => line.trim()).filter(Boolean),
-    };
-  }).filter(Boolean);
-  return blocks as { index: string; lines: string[] }[];
-}
-
-// index(번호) 기준으로 100단위로 SRT 블록을 나누어 번역하는 함수
-async function splitByIndexAndTranslate(
-  blocks: { index: string; time: string; lines: string[] }[],
-  lang: string,
-  model: string,
-  batchSize: number = 100
-) {
-  // 번호가 숫자인 블록만 추출
-  const numberedBlocks = blocks.filter(b => /^\d+$/.test(b.index));
-  // batchSize 단위로 그룹핑
-  const groups: { index: number; blocks: { index: string; time: string; lines: string[] }[] }[] = [];
-  let currentGroup: { index: number; blocks: { index: string; time: string; lines: string[] }[] } = { index: 1, blocks: [] };
-  for (const block of numberedBlocks) {
-    if (currentGroup.blocks.length === 0) {
-      currentGroup.index = parseInt(block.index, 10);
-    }
-    currentGroup.blocks.push(block);
-    if (currentGroup.blocks.length === batchSize) {
-      groups.push(currentGroup);
-      currentGroup = { index: parseInt(block.index, 10) + 1, blocks: [] };
-    }
-  }
-  if (currentGroup.blocks.length > 0) groups.push(currentGroup);
-
-  // 언어명 매핑 (Gemini용)
-  const langMap: Record<string, string> = {
-    en: "English",
-    ja: "Japanese",
-    zh: "Chinese",
-    de: "German",
-    fr: "French",
-    es: "Spanish",
-  };
-  const langLabel = langMap[lang] || lang;
-
-  let translatedBlocks: string[][] = [];
-  for (const group of groups) {
-    if (model === "deepl") {
-      // DeepL 번역 API 호출 분기
-      const texts = group.blocks.map((block) => block.lines.join("\n"));
-      // 디버깅: 요청에 보낼 texts 출력
-      console.log("[DeepL][요청 texts]", texts);
-      // 서버 환경에서 절대경로 필요
-      const baseUrl = process.env.INTERNAL_API_BASE_URL || "http://localhost:3000";
-      const res = await fetch(`${baseUrl}/api/deepl-translate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text: texts.join("\n\n"), // 블록별로 두 줄 띄우기
-          targetLanguages: [lang],
-        }),
-      });
-      const data = await res.json();
-      // 디버깅: DeepL 응답 전체 출력
-      console.log("[DeepL][응답 data]", data);
-      // 한글 주석: 번역 결과를 \n\n로 분할하여 각 블록에 매핑
-      const translated = (data.result?.[lang] || "").split(/\n\n/);
-      // 디버깅: 번역 결과 블록별 출력
-      console.log("[DeepL][블록별 번역 결과]", translated);
-      for (let i = 0; i < group.blocks.length; i++) {
-        const origLines = group.blocks[i].lines.length;
-        let lines = (translated[i] || "").split("\n");
-        if (lines.length < origLines) {
-          while (lines.length < origLines) lines.push("");
-        } else if (lines.length > origLines) {
-          lines = [ ...lines.slice(0, origLines-1), lines.slice(origLines-1).join(' ') ];
+// 텍스트 번역 함수 (src/app/api/v1/translate/route.ts와 동일)
+async function translateText(text: string, targetLanguages: string[], model: string, options: any = {}) {
+  let results: Record<string, string> = {}
+  switch (model) {
+    case "deepl": {
+      const apiKey = process.env.DEEPL_API_KEY
+      if (!apiKey) throw new Error("DEEPL API 키가 없습니다.")
+      for (const lang of targetLanguages) {
+        const targetLang = deeplLangMap[lang] || lang.toUpperCase()
+        const params: Record<string, string> = {
+          text,
+          target_lang: targetLang,
         }
-        translatedBlocks.push(lines);
-      }
-      await new Promise(res => setTimeout(res, 1000));
-    } else if (model === "gemini-1.5-flash") {
-      // 기존 Gemini 로직
-      const promptBlocks = group.blocks.map((block) => `[#${block.index}]\n${block.lines.join("\n")}`);
-      const prompt = `Translate only the Korean subtitle part in the following blocks into natural ${langLabel}.
-Return the result as [#index]\\ntranslated lines. Do not add any explanation or commentary.
-
-${promptBlocks.join("\n\n")}`;
-      let translatedText = "";
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-        {
+        if (options.tag_handling) params.tag_handling = options.tag_handling
+        if (options.preserve_formatting) params.preserve_formatting = "1"
+        const res = await fetch("https://api-free.deepl.com/v2/translate", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Authorization": `DeepL-Auth-Key ${apiKey}`,
+          },
+          body: new URLSearchParams(params),
+        })
+        const data = await res.json()
+        results[lang] = data.translations?.[0]?.text || "번역 실패"
+      }
+      break
+    }
+    case "gemini-1.5-flash": {
+      const apiKey = process.env.GEMINI_API_KEY
+      if (!apiKey) throw new Error("GEMINI API 키가 없습니다.")
+      for (const lang of targetLanguages) {
+        const prompt = `Translate only the following text to ${lang}. Output only the translation, no explanation or commentary:\n\n${text}`
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [ { role: "user", parts: [{ text: prompt }] } ],
+              generationConfig: { temperature: 0.3, maxOutputTokens: 1024 },
+            }),
+          }
+        )
+        const data = await res.json()
+        results[lang] = data.candidates?.[0]?.content?.parts?.[0]?.text || "번역 실패"
+      }
+      break
+    }
+    case "gpt-4o-mini": {
+      const apiKey = process.env.OPENAI_API_KEY
+      if (!apiKey) throw new Error("OPENAI API 키가 없습니다.")
+      for (const lang of targetLanguages) {
+        const prompt = `Translate the following text to ${lang}: ${text}`
+        const res = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`,
+          },
           body: JSON.stringify({
-            contents: [
-              { role: "user", parts: [{ text: prompt }] }
+            model: "gpt-4o-mini",
+            messages: [
+              { role: "system", content: "You are a professional translator." },
+              { role: "user", content: prompt },
             ],
-            generationConfig: { temperature: 0.3, maxOutputTokens: 8192 },
+            max_tokens: 1024,
+            temperature: 0.3,
           }),
-        }
-      );
-      const data = await res.json();
-      translatedText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      // 한글 주석: Gemini 번역 API 응답 로그 및 번역 결과 출력
-      console.log("[DEBUG] translatedText 원본:", translatedText);
-      // Gemini가 [#번호]\n자막 형태로 반환하면 parseGeminiBlocks로 파싱
-      const parsedBlocks = parseGeminiBlocks(translatedText);
-      const fixedBlocks = [];
-      for (let j = 0; j < group.blocks.length; j++) {
-        let lines = parsedBlocks[j]?.lines || [];
-        if (!parsedBlocks[j]) {
-          lines = group.blocks[j].lines.map(() => "");
-        }
-        const origLines = group.blocks[j].lines.length;
-        if (lines.length < origLines) {
-          while (lines.length < origLines) lines.push("");
-        } else if (lines.length > origLines) {
-          lines = [ ...lines.slice(0, origLines-1), lines.slice(origLines-1).join(' ') ];
-        }
-        translatedBlocks.push(lines);
+        })
+        const data = await res.json()
+        results[lang] = data.choices?.[0]?.message?.content || "번역 실패"
       }
-      await new Promise(res => setTimeout(res, 1000));
-    } else {
-      // 기타(원본 유지 등)
-      for (const block of group.blocks) {
-        translatedBlocks.push([...block.lines]);
-      }
+      break
     }
+    default:
+      throw new Error(`지원하지 않는 번역 모델: ${model}`)
   }
-  translatedBlocks.forEach((block, i) => {
-    if (!Array.isArray(block)) {
-      console.error(`[ERROR] block[${i}]이 배열이 아님:`, block);
-    }
-  });
-  return translatedBlocks;
+  return results
 }
 
-// POST /api/v1/translate-file
-export async function POST(req: NextRequest) {
-  const formData = await req.formData();
-  const file = formData.get("file");
-  const targetLanguages = JSON.parse(formData.get("targetLanguages") as string);
-  const model = formData.get("model") as string || "gemini-1.5-flash";
-
-  if (!file || !(file instanceof Blob)) {
-    return NextResponse.json({ error: "파일이 필요합니다." }, { status: 400 });
-  }
-  if (!targetLanguages || !Array.isArray(targetLanguages)) {
-    return NextResponse.json({ error: "타겟 언어가 필요합니다." }, { status: 400 });
-  }
-
-  // 원본 파일명 추출
-  const origName = (file as any).name || "subtitle.srt";
-  const baseName = origName.replace(/\.[^.]+$/, "");
-
-  // SRT 파일 텍스트 추출
-  const srtText = await file.text();
-  const blocks = parseSRT(srtText);
-
-  // 언어별 SRT 파일 생성
-  const srtFiles: Record<string, string> = {};
-  for (const lang of targetLanguages) {
-    // 번역 대상만 추출
-    const numberedBlocks = blocks.filter(b => /^\d+$/.test(b.index));
-    const translatedBlockLines = await splitByIndexAndTranslate(numberedBlocks, lang, model, 500);
-
-    console.log("blocks.length:", blocks.length);
-    console.log("translatedBlockLines.length:", translatedBlockLines.length);
-
-    let translatedIdx = 0;
-    const translatedBlocks = blocks.map((block, i) => {
-      if (/^\d+$/.test(block.index)) {
-        console.log(`[매핑] block[${i}] index: ${block.index} -> 번역 lines:`, translatedBlockLines[translatedIdx]);
-        return { ...block, lines: translatedBlockLines[translatedIdx++] || [] };
-      } else {
-        return block;
-      }
-    });
-    srtFiles[lang] = buildSRT(translatedBlocks);
-  }
-
-  // 단일 언어면 바로 SRT 반환, 여러 언어면 zip
-  if (targetLanguages.length === 1) {
-    const lang = targetLanguages[0];
-    return new NextResponse(srtFiles[lang], {
-      status: 200,
-      headers: {
-        "Content-Type": "text/plain; charset=utf-8",
-        "Content-Disposition": `attachment; filename=${baseName}-${lang}.srt`,
-      },
-    });
-  } else {
-    // zip 파일 생성
-    const zip = new JSZip();
-    for (const lang of targetLanguages) {
-      zip.file(`${baseName}-${lang}.srt`, srtFiles[lang]);
+// SRT 파싱 및 재조립
+function parseSRT(srt: string) {
+  return srt.split(/\n\n+/).map(block => {
+    const lines = block.split("\n")
+    return {
+      index: lines[0],
+      time: lines[1],
+      text: lines.slice(2).join("\n"),
     }
-    const zipBlob = await zip.generateAsync({ type: "uint8array" });
-    return new NextResponse(zipBlob, {
-      status: 200,
-      headers: {
-        "Content-Type": "application/zip",
-        "Content-Disposition": `attachment; filename=${baseName}-translated.zip`,
-      },
-    });
+  })
+}
+function buildSRT(blocks: { index: string; time: string; text: string }[]) {
+  return blocks.map(b => `${b.index}\n${b.time}\n${b.text}`.trim()).join("\n\n")
+}
+
+// VTT 파싱 및 재조립
+function parseVTT(vtt: string) {
+  const lines = vtt.split(/\r?\n/)
+  const blocks = []
+  let currentBlock: any = {}
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim()
+    if (line === "WEBVTT") continue
+    if (line === "") {
+      if (currentBlock.time && currentBlock.text) {
+        blocks.push(currentBlock)
+      }
+      currentBlock = {}
+      continue
+    }
+    if (/^\d{2}:\d{2}:\d{2}.\d{3} --> \d{2}:\d{2}:\d{2}.\d{3}/.test(line)) {
+      currentBlock.time = line
+    } else if (currentBlock.time) {
+      if (!currentBlock.text) currentBlock.text = ""
+      currentBlock.text += (currentBlock.text ? "\n" : "") + line
+    }
+  }
+  if (currentBlock.time && currentBlock.text) {
+    blocks.push(currentBlock)
+  }
+  return blocks
+}
+function buildVTT(blocks: { time: string; text: string }[]) {
+  return "WEBVTT\n\n" + blocks.map(b => `${b.time}\n${b.text}`.trim()).join("\n\n")
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const formData = await req.formData()
+    const file = formData.get("file") as File
+    const targetLanguages = JSON.parse(formData.get("targetLanguages") as string)
+    const model = (formData.get("model") as string) || "deepl"
+    const fileType = (formData.get("fileType") as string) || "srt"
+    if (!file || !targetLanguages) {
+      return NextResponse.json({ success: false, error: { code: "VALIDATION_ERROR", message: "필수 파라미터가 누락되었습니다." } }, { status: 400 })
+    }
+    const origName = (file as any).name || "file"
+    const baseName = origName.replace(/\.[^.]+$/, "")
+    const content = await file.text()
+    let translatedFiles: Record<string, string> = {}
+    switch (fileType) {
+      case "srt": {
+        const blocks = parseSRT(content)
+        for (const lang of targetLanguages) {
+          const translatedBlocks = []
+          for (const block of blocks) {
+            if (!block.text) {
+              translatedBlocks.push(block)
+              continue
+            }
+            const result = await translateText(block.text, [lang], model)
+            translatedBlocks.push({ ...block, text: result[lang] })
+          }
+          translatedFiles[lang] = buildSRT(translatedBlocks)
+        }
+        break
+      }
+      case "vtt": {
+        const blocks = parseVTT(content)
+        for (const lang of targetLanguages) {
+          const translatedBlocks = []
+          for (const block of blocks) {
+            if (!block.text) {
+              translatedBlocks.push(block)
+              continue
+            }
+            const result = await translateText(block.text, [lang], model)
+            translatedBlocks.push({ ...block, text: result[lang] })
+          }
+          translatedFiles[lang] = buildVTT(translatedBlocks)
+        }
+        break
+      }
+      case "txt":
+      case "csv": {
+        const lines = content.split(/\r?\n/)
+        for (const lang of targetLanguages) {
+          const translatedLines = []
+          for (const line of lines) {
+            const result = await translateText(line, [lang], model)
+            translatedLines.push(result[lang])
+          }
+          translatedFiles[lang] = translatedLines.join("\n")
+        }
+        break
+      }
+      case "json": {
+        try {
+          const jsonContent = JSON.parse(content)
+          for (const lang of targetLanguages) {
+            const translated = await translateJSON(jsonContent, lang, model)
+            translatedFiles[lang] = JSON.stringify(translated, null, 2)
+          }
+        } catch (e) {
+          return NextResponse.json({ success: false, error: { code: "VALIDATION_ERROR", message: "유효하지 않은 JSON 형식입니다." } }, { status: 400 })
+        }
+        break
+      }
+      default:
+        return NextResponse.json({ success: false, error: { code: "UNSUPPORTED_FILE_TYPE", message: `지원하지 않는 파일 형식: ${fileType}` } }, { status: 400 })
+    }
+    // 응답: 단일 언어면 바로 파일, 여러 언어면 zip
+    if (targetLanguages.length === 1) {
+      const lang = targetLanguages[0]
+      return new NextResponse(translatedFiles[lang], {
+        status: 200,
+        headers: {
+          "Content-Type": getContentType(fileType),
+          "Content-Disposition": `attachment; filename=${baseName}-${lang}.${fileType}`
+        }
+      })
+    } else {
+      const zip = new JSZip()
+      for (const lang of targetLanguages) {
+        zip.file(`${baseName}-${lang}.${fileType}`, translatedFiles[lang])
+      }
+      const zipBlob = await zip.generateAsync({ type: "uint8array" })
+      return new NextResponse(zipBlob, {
+        status: 200,
+        headers: {
+          "Content-Type": "application/zip",
+          "Content-Disposition": `attachment; filename=${baseName}-translated.zip`
+        }
+      })
+    }
+  } catch (error) {
+    return NextResponse.json({ success: false, error: { code: "SERVER_ERROR", message: "파일 번역 처리 중 오류 발생" } }, { status: 500 })
+  }
+}
+
+// JSON 객체 번역 (재귀)
+async function translateJSON(obj: any, targetLang: string, model: string): Promise<any> {
+  if (typeof obj === "string") {
+    const result = await translateText(obj, [targetLang], model)
+    return result[targetLang]
+  }
+  if (Array.isArray(obj)) {
+    return Promise.all(obj.map(item => translateJSON(item, targetLang, model)))
+  }
+  if (typeof obj === "object" && obj !== null) {
+    const result: Record<string, any> = {}
+    for (const [key, value] of Object.entries(obj)) {
+      result[key] = await translateJSON(value, targetLang, model)
+    }
+    return result
+  }
+  return obj
+}
+
+function getContentType(fileType: string): string {
+  switch (fileType) {
+    case "json": return "application/json; charset=utf-8"
+    case "csv": return "text/csv; charset=utf-8"
+    default: return "text/plain; charset=utf-8"
   }
 } 

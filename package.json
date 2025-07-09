@@ -22,12 +22,15 @@
     "@tiptap/starter-kit": "^2.24.0",
     "bcryptjs": "^3.0.2",
     "franc": "^6.2.0",
+    "js-yaml": "^4.1.0",
     "jsonwebtoken": "^9.0.2",
     "jszip": "^3.10.1",
     "lowlight": "^3.3.0",
     "next": "15.3.3",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "swagger-ui-express": "^5.0.1",
+    "swagger-ui-react": "^5.26.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

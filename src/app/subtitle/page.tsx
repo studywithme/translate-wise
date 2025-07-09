@@ -78,12 +78,24 @@ export default function SubtitlePage() {
     formData.append("file", file);
     formData.append("targetLanguages", JSON.stringify(targetLangs));
     formData.append("model", "deepl"); // 필요시 모델 선택 UI 연동
+    formData.append("fileType", "srt"); // 파일 형식 명시
 
     // 파일 번역 API 호출
     const res = await fetch("/api/v1/translate-file", {
       method: "POST",
+      headers: {
+        'x-api-key': process.env.NEXT_PUBLIC_API_KEY as string
+      },
       body: formData,
     });
+
+    if (!res.ok) {
+      const error = await res.json();
+      console.error('번역 실패:', error);
+      alert(error.error?.message || '번역 중 오류가 발생했습니다.');
+      setLoading(false);
+      return;
+    }
 
     // 여러 언어면 zip, 단일 언어면 SRT
     const contentDisposition = res.headers.get("Content-Disposition") || "";

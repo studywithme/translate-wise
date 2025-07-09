@@ -1,0 +1,226 @@
+openapi: 3.0.3
+info:
+  title: TranslateWise Open API
+  version: 1.0.0
+  description: |
+    TranslateWise의 핵심 번역 API(OpenAPI 3.0 문서)
+    
+    ## 인증
+    - 모든 API는 `x-api-key` 헤더에 발급받은 API 키를 포함해야 합니다.
+    - 키는 [키 발급 가이드](#section/API-키-발급-및-사용법) 참고
+    
+    ## 지원 번역 모델
+    - deepl: DeepL API
+    - gemini-1.5-flash: Google Gemini 1.5 Flash
+    - gpt-4o-mini: OpenAI GPT-4o mini
+    
+    ## 지원 파일 형식
+    - srt, vtt, txt, csv, json
+    
+    ## API 키 발급 및 사용법
+    1. 회원가입/로그인 후 [마이페이지]에서 API 키 발급
+    2. 키는 노출되지 않도록 안전하게 보관
+    3. 모든 API 요청 시 HTTP 헤더에 `x-api-key: <발급받은 키>` 추가
+    4. 키 유출 시 즉시 폐기 및 재발급
+    
+    예시:
+    ```http
+    POST /api/v1/translate
+    x-api-key: your_api_key_here
+    Content-Type: application/json
+    ```
+
+servers:
+  - url: https://your-domain.com
+    description: Production
+  - url: http://localhost:3000
+    description: Local
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+  schemas:
+    TranslateRequest:
+      type: object
+      required: [text, targetLanguages]
+      properties:
+        text:
+          type: string
+          description: "번역할 텍스트"
+        targetLanguages:
+          type: array
+          items:
+            type: string
+          description: "번역 대상 언어 코드 배열 (예: [\"en\", \"ja\"])"
+        model:
+          type: string
+          enum: [deepl, gemini-1.5-flash, gpt-4o-mini]
+          default: gemini-1.5-flash
+          description: "번역 모델"
+        options:
+          type: object
+          description: "번역 옵션 (예: tag_handling, preserve_formatting)"
+    TranslateResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            translations:
+              type: object
+              additionalProperties:
+                type: string
+    TranslateFileResponse:
+      type: string
+      format: binary
+      description: "번역된 파일 또는 ZIP"
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /api/v1/translate:
+    post:
+      summary: 텍스트 번역
+      description: |
+        입력 텍스트를 지정한 언어로 번역합니다.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TranslateRequest'
+      responses:
+        '200':
+          description: "번역 성공"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TranslateResponse'
+        '400':
+          description: "잘못된 요청"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: "인증 실패"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: "요청 제한 초과"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: "서버 오류"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - ApiKeyAuth: []
+
+  /api/v1/translate-file:
+    post:
+      summary: 파일 번역
+      description: |
+        SRT, VTT, TXT, CSV, JSON 파일을 여러 언어로 번역합니다.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, targetLanguages]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: "번역할 파일"
+                targetLanguages:
+                  type: string
+                  description: "번역 대상 언어 코드 배열(JSON 문자열, 예: '[\"en\",\"ja\"]')"
+                model:
+                  type: string
+                  enum: [deepl, gemini-1.5-flash, gpt-4o-mini]
+                  default: deepl
+                  description: "번역 모델 (생략 시 deepl, 인증/요청 제한/응답 표준화는 미들웨어에서 처리)"
+                fileType:
+                  type: string
+                  enum: [srt, vtt, txt, csv, json]
+                  description: "파일 형식(명시적 지정, 생략 시 확장자 자동 인식)"
+      responses:
+        '200':
+          description: "번역된 파일(단일 언어) 또는 ZIP(다중 언어)"
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/TranslateFileResponse'
+        '400':
+          description: "잘못된 요청"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: "인증 실패"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: "요청 제한 초과"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: "서버 오류"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - ApiKeyAuth: []
+
+# ---
+# API 키 발급 및 사용법
+x-tagGroups:
+  - name: 인증 및 키 발급
+    tags:
+      - API 키 발급 및 사용법
+x-tags:
+  - name: API 키 발급 및 사용법
+    description: |
+      1. 회원가입/로그인 후 [마이페이지]에서 API 키 발급
+      2. 키는 노출되지 않도록 안전하게 보관
+      3. 모든 API 요청 시 HTTP 헤더에 `x-api-key: <발급받은 키>` 추가
+      4. 키 유출 시 즉시 폐기 및 재발급
+      
+      예시:
+      ```http
+      POST /api/v1/translate
+      x-api-key: your_api_key_here
+      Content-Type: application/json
+      ``` 

@@ -3,25 +3,27 @@ import { prisma } from './db'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 
-// API 키 생성
-export async function generateApiKey() {
-  return `tw_${Math.random().toString(36).substring(2)}_${Date.now()}`
+// API 키 검증 함수 (DB 없이 테스트용)
+export async function verifyApiKey(apiKey: string) {
+  if (apiKey === process.env.INTERNAL_API_KEY) {
+    return { id: 'internal', name: 'Internal API', apiKey, role: 'internal' }
+  }
+  if (process.env.NODE_ENV === 'development' && apiKey === process.env.NEXT_PUBLIC_API_KEY) {
+    return { id: 'public', name: 'Public API', apiKey, role: 'public' }
+  }
+  // DB 없이 테스트: 기타 키는 모두 거부
+  return null
 }
 
-// API 키 검증
-export async function verifyApiKey(apiKey: string) {
-  const user = await prisma.user.findUnique({
-    where: { apiKey },
-    select: {
-      id: true,
-      plan: true,
-      usage: {
-        orderBy: { date: 'desc' },
-        take: 1
-      }
-    }
-  })
-  return user
+// API 키 생성 함수
+export function generateApiKey() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+  const prefix = 'tw_'
+  let key = prefix
+  for (let i = 0; i < 32; i++) {
+    key += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return key
 }
 
 // JWT 토큰 생성
