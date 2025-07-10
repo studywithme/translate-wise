@@ -16,10 +16,8 @@ npx create-next-app@latest . --use-npm --tailwind --app --eslint --src-dir --imp
 ## 3. 의존성 설치
 ```bash
 npm install
-
 npm install franc --save
 npm install @heroicons/react
-
 ```
 
 ## 4. 개발 서버 실행
@@ -40,22 +38,18 @@ npm run dev
 ### 1) 서버 환경 준비
 - Node.js 18 이상, npm 설치 필요 (예: Ubuntu 22.04 기준)
 
-```bash
 # Node.js 설치 (공식 LTS 버전)
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
 sudo apt-get install -y nodejs
 
 # git 설치 (필요시)
 sudo apt-get install -y git
-```
 
 ### 2) 프로젝트 코드 서버에 복사
 - git clone 또는 파일 직접 업로드
 
-```bash
 git clone <YOUR_REPO_URL> translate-wise
 cd translate-wise
-```
 
 ### 3) .env.local 파일 생성 및 API 키 입력
 - 프로젝트 루트에 `.env.local` 파일 생성
@@ -110,8 +104,6 @@ pm2 startup
 - 각 서비스의 무료/유료 정책 및 사용량 제한을 반드시 확인하세요.
 - 키 유출에 주의하세요! (절대 공개 저장소에 올리지 마세요)
 
----
-
 ## 8. GitHub에 프로젝트 푸시하는 방법
 
 1. GitHub에서 새 저장소(Repository) 생성
@@ -139,8 +131,6 @@ git push
 ```
 
 - GitHub Actions, Vercel 등과 연동하면 push 시 자동 배포 가능
-
----
 
 ## 9. Prisma(MySQL) 설정 및 서버 실행 방법
 
@@ -173,3 +163,55 @@ npm start
 - API, 인증, 요금제, 사용량 추적 등은 Prisma(MySQL) 기반으로 동작합니다.
 
 ---
+
+## 주요 API 테스트용 curl 명령어 예시
+
+### 1. 회원가입
+```bash
+curl -X POST http://localhost:3000/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"testuser@example.com","password":"testpassword123"}'
+```
+
+### 2. 로그인 (JWT 토큰 발급)
+```bash
+curl -X POST http://localhost:3000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"testuser@example.com","password":"testpassword123"}'
+```
+- 응답에서 "data": { "token": "..." } 부분의 토큰을 복사합니다.
+
+### 3. API 키 발급
+```bash
+curl -X POST http://localhost:3000/api/v1/auth/apikey \
+  -H "Authorization: Bearer <여기에_위에서_복사한_JWT_토큰_붙여넣기>"
+
+curl -X POST http://localhost:3000/api/v1/auth/apikey \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJjbWN4MnMxOWIwMDAwNXp5NmVncmd1M2F6IiwiZW1haWwiOiJ0ZXN0dXNlckBleGFtcGxlLmNvbSIsImlhdCI6MTc1MjEzMzA4MSwiZXhwIjoxNzUyNzM3ODgxfQ.tSqPek2sCIgkIZQWkRZieMqP0L4LQ2o1ORz1dZ818uk"
+
+```
+- 응답에서 "data": { "key": "발급된_키값", ... } 부분의 키를 복사해 사용합니다.
+
+### 4. API 키 폐기
+```bash
+curl -X POST http://localhost:3000/api/v1/auth/apikey/revoke \
+  -H "Authorization: Bearer <JWT_토큰>" \
+  -H "Content-Type: application/json" \
+  -d '{"key":"<API_KEY_여기에_붙여넣기>"}'
+```
+
+### 5. API 키 재발급
+```bash
+curl -X POST http://localhost:3000/api/v1/auth/apikey/refresh \
+  -H "Authorization: Bearer <JWT_토큰>"
+```
+
+### 6. 마이페이지 (내 정보, 내 API 키 목록)
+```bash
+curl -X GET http://localhost:3000/api/v1/auth/me \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJjbWN4MnMxOWIwMDAwNXp5NmVncmd1M2F6IiwiZW1haWwiOiJ0ZXN0dXNlckBleGFtcGxlLmNvbSIsImlhdCI6MTc1MjEzMzA4MSwiZXhwIjoxNzUyNzM3ODgxfQ.tSqPek2sCIgkIZQWkRZieMqP0L4LQ2o1ORz1dZ818uk"
+```
+
+---
+- 각 단계에서 에러가 발생하면 응답 메시지나 서버 로그를 참고하세요.
+- API 키는 DB에 실제로 존재해야 하며, revoked=false 상태여야 정상 인증됩니다.

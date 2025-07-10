@@ -2,11 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext';
 
 // 상단 네비게이션 바 컴포넌트
 export default function NavBar() {
   // 현재 경로를 가져옴 (클라이언트에서 안전하게 동작)
   const pathname = usePathname();
+  const { user, logout } = useAuth();
   // 메뉴 목록
   const menuItems = [
     { name: '컨텐츠 번역', href: '/content-translate' },
@@ -39,6 +41,24 @@ export default function NavBar() {
             );
           })}
         </div>
+        <div className="flex-1" />
+        {/* 로그인/로그아웃 영역 */}
+        {user ? (
+          <div className="flex items-center gap-2">
+            <Link href="/auth/mypage" className="px-3 py-1 rounded bg-gray-100 text-gray-700 text-sm hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700">마이페이지</Link>
+            <button
+              onClick={logout}
+              className="ml-2 px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm"
+            >
+              로그아웃
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Link href="/auth/login" className="px-3 py-1 rounded bg-blue-600 text-white text-sm hover:bg-blue-700">로그인</Link>
+            <Link href="/auth/register" className="px-3 py-1 rounded bg-gray-200 text-gray-700 text-sm hover:bg-gray-300">회원가입</Link>
+          </div>
+        )}
       </div>
     </nav>
   )

@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from "next/server"
+import { verifyApiKey } from '@/lib/verifyApiKey';
+import logger from '@/lib/logger';
 
 const deeplLangMap: Record<string, string> = {
   en: "EN", ja: "JA", zh: "ZH", de: "DE", fr: "FR", es: "ES", it: "IT", ru: "RU", pt: "PT"
 }
 
 export async function POST(req: NextRequest) {
+  // API 키 검증
+  const result = await verifyApiKey(req);
+  if (!result.ok) {
+    logger.warn(`번역 API 키 검증 실패: ${result.error}`);
+    return NextResponse.json({ success: false, error: result.error }, { status: result.status });
+  }
   try {
     const { text, targetLanguages, model, options = {} } = await req.json()
     if (!text || !targetLanguages) {
@@ -87,8 +95,10 @@ export async function POST(req: NextRequest) {
       default:
         return NextResponse.json({ success: false, error: { code: "UNSUPPORTED_MODEL", message: `지원하지 않는 번역 모델: ${selectedModel}` } }, { status: 400 })
     }
+    logger.info('번역 API 요청 성공');
     return NextResponse.json({ success: true, data: { translations: results } })
   } catch (error) {
+    logger.error({ err: error }, '번역 API 서버 오류');
     return NextResponse.json({ success: false, error: { code: "SERVER_ERROR", message: "번역 처리 중 오류 발생" } }, { status: 500 })
   }
 } 

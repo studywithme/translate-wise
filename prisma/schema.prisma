@@ -13,11 +13,11 @@ model User {
   id        String   @id @default(cuid())
   email     String   @unique
   password  String
-  apiKey    String   @unique
   plan      Plan     @default(FREE)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   usage     Usage[]
+  apiKeys   ApiKey[]
 }
 
 model Usage {
@@ -27,6 +27,16 @@ model Usage {
   requests   Int      @default(0)
   characters Int      @default(0)
   date       DateTime @default(now())
+}
+
+model ApiKey {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  revoked     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  lastUsedAt  DateTime?
 }
 
 enum Plan {

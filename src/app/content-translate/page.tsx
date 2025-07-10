@@ -194,7 +194,9 @@ export default function ContentTranslatePage() {
               value={sourceLang} 
               onChange={(e) => {
                 setSourceLang(e.target.value);
-                setActiveTab(e.target.value);
+                // 원본 언어와 다른 첫 번째 타겟 언어로 activeTab 설정
+                const nextTab = settings.targetLanguages.find(lang => lang.code !== (e.target.value === 'auto' ? detectedLang1 : e.target.value));
+                if (nextTab) setActiveTab(nextTab.code);
               }}
               className="w-full bg-transparent text-gray-700 font-medium focus:outline-none dark:text-gray-200"
             >
@@ -231,19 +233,25 @@ export default function ContentTranslatePage() {
           <div className="mb-2">
             <label className="block font-semibold text-gray-700 dark:text-gray-100 mb-1">번역 결과</label>
             <div className="flex gap-1 flex-wrap mb-2">
-              {settings.targetLanguages.map(lang => (
-                <button
-                  key={lang.code}
-                  onClick={() => handleTabClick(lang.code)}
-                  className={`px-4 py-2 text-sm font-medium rounded transition-colors ${
-                    activeTab === lang.code
-                      ? 'bg-blue-100 text-blue-700 border border-blue-300 dark:bg-blue-900 dark:text-blue-200 dark:border-blue-700'
-                      : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  {lang.name}
-                </button>
-              ))}
+              {settings.targetLanguages.map(lang => {
+                const isDisabled = lang.code === (sourceLang === 'auto' ? detectedLang1 : sourceLang);
+                return (
+                  <button
+                    key={lang.code}
+                    onClick={() => !isDisabled && handleTabClick(lang.code)}
+                    disabled={isDisabled}
+                    className={`px-4 py-2 text-sm font-medium rounded transition-colors ${
+                      activeTab === lang.code
+                        ? 'bg-blue-100 text-blue-700 border border-blue-300 dark:bg-blue-900 dark:text-blue-200 dark:border-blue-700'
+                        : isDisabled
+                          ? 'bg-gray-200 text-gray-400 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500'
+                          : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    {lang.name}
+                  </button>
+                );
+              })}
             </div>
           </div>
           <div className="relative flex-1 overflow-y-auto">
