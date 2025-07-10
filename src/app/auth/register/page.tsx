@@ -21,7 +21,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-20 p-8 bg-white rounded shadow">
+    <div className="max-w-md mx-auto mt-20 p-8 bg-white dark:bg-gray-900 rounded shadow dark:text-gray-100">
       <h2 className="text-2xl font-bold mb-6">회원가입</h2>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <input

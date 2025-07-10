@@ -63,6 +63,7 @@ GEMINI_API_KEY=AIzaSyxxxxxx
 ### 4) 의존성 설치
 ```bash
 npm install
+
 ```
 
 ### 5) Next.js 빌드
@@ -138,9 +139,7 @@ git push
 ```bash
 npm install @prisma/client prisma bcryptjs jsonwebtoken
 npm install -D @types/bcryptjs @types/jsonwebtoken
-```
-
-### 2) Prisma 클라이언트 생성 및 DB 초기화
+```### 2) Prisma 클라이언트 생성 및 DB 초기화
 ```bash
 npx prisma generate
 npx prisma db push
@@ -215,3 +214,31 @@ curl -X GET http://localhost:3000/api/v1/auth/me \
 ---
 - 각 단계에서 에러가 발생하면 응답 메시지나 서버 로그를 참고하세요.
 - API 키는 DB에 실제로 존재해야 하며, revoked=false 상태여야 정상 인증됩니다.
+
+### Prisma 운영 배포 체크리스트
+
+- **DB 스키마가 변경된 경우, 반드시 아래 순서로 진행하세요:**
+
+1. 의존성 설치
+   ```bash
+   npm install
+   ```
+2. **Prisma 마이그레이션 적용** (DB 스키마 변경사항 반영)
+   ```bash
+   npx prisma migrate deploy
+   ```
+3. (선택) Prisma Client 생성 (build 과정에 포함되어 있으면 생략 가능)
+   ```bash
+   npx prisma generate
+   ```
+4. 앱 빌드 및 실행
+   ```bash
+   npm run build
+   npm start
+   ```
+
+- 운영 환경에서는 반드시 `npx prisma migrate deploy`를 사용해야 하며, 개발용 `prisma migrate dev`는 사용하지 않습니다.
+- DB 스키마가 바뀔 때마다 migrate deploy를 해줘야 하며, drift(불일치) 경고가 뜨면 Prisma 공식 문서의 drift 해결법을 참고하세요.
+- Prisma Client는 빌드 시 자동 생성되지만, 필요시 수동으로 `npx prisma generate`를 실행할 수 있습니다.
+
+
