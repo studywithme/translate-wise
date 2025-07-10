@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import jwt from 'jsonwebtoken';
+import jwt, { JwtPayload } from 'jsonwebtoken';
 
 const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
@@ -23,8 +23,11 @@ export async function GET(req: NextRequest) {
     } catch {
       return NextResponse.json({ success: false, error: '토큰이 유효하지 않습니다.' }, { status: 401 });
     }
+    if (typeof payload !== 'object' || !('userId' in payload)) {
+      return NextResponse.json({ success: false, error: '토큰이 유효하지 않습니다.' }, { status: 401 });
+    }
     const user = await prisma.user.findUnique({
-      where: { id: payload.userId },
+      where: { id: (payload as JwtPayload).userId },
       select: {
         id: true,
         email: true,

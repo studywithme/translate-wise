@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import jwt from 'jsonwebtoken';
+import jwt, { JwtPayload } from 'jsonwebtoken';
 import crypto from 'crypto';
 
 const prisma = new PrismaClient();
@@ -24,12 +24,15 @@ export async function POST(req: NextRequest) {
     } catch {
       return NextResponse.json({ success: false, error: '토큰이 유효하지 않습니다.' }, { status: 401 });
     }
+    if (typeof payload !== 'object' || !('userId' in payload)) {
+      return NextResponse.json({ success: false, error: '토큰이 유효하지 않습니다.' }, { status: 401 });
+    }
     // 기존 키 모두 폐기
-    await prisma.apiKey.updateMany({ where: { userId: payload.userId, revoked: false }, data: { revoked: true } });
+    await prisma.apiKey.updateMany({ where: { userId: (payload as JwtPayload).userId, revoked: false }, data: { revoked: true } });
     // 새 키 발급
     const key = crypto.randomBytes(32).toString('hex');
     const apiKey = await prisma.apiKey.create({
-      data: { userId: payload.userId, key },
+      data: { userId: (payload as JwtPayload).userId, key },
       select: { id: true, key: true, createdAt: true }
     });
     return NextResponse.json({ success: true, data: apiKey });

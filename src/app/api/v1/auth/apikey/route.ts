@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import jwt from 'jsonwebtoken';
+import jwt, { JwtPayload } from 'jsonwebtoken';
 import crypto from 'crypto';
 
 const prisma = new PrismaClient();
@@ -24,15 +24,18 @@ export async function POST(req: NextRequest) {
     } catch {
       return NextResponse.json({ success: false, error: '토큰이 유효하지 않습니다.' }, { status: 401 });
     }
+    if (typeof payload !== 'object' || !('userId' in payload)) {
+      return NextResponse.json({ success: false, error: '토큰이 유효하지 않습니다.' }, { status: 401 });
+    }
     // 이미 발급된 키가 있으면 에러
-    const existing = await prisma.apiKey.findFirst({ where: { userId: payload.userId, revoked: false } });
+    const existing = await prisma.apiKey.findFirst({ where: { userId: (payload as JwtPayload).userId, revoked: false } });
     if (existing) {
       return NextResponse.json({ success: false, error: '이미 발급된 API 키가 있습니다.' }, { status: 409 });
     }
     // 키 생성(랜덤)
     const key = crypto.randomBytes(32).toString('hex');
     const apiKey = await prisma.apiKey.create({
-      data: { userId: payload.userId, key },
+      data: { userId: (payload as JwtPayload).userId, key },
       select: { id: true, key: true, createdAt: true }
     });
     // 최초 1회만 노출

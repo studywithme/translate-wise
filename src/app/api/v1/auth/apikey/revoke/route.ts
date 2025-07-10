@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import jwt from 'jsonwebtoken';
+import jwt, { JwtPayload } from 'jsonwebtoken';
 
 const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
@@ -23,13 +23,16 @@ export async function POST(req: NextRequest) {
     } catch {
       return NextResponse.json({ success: false, error: '토큰이 유효하지 않습니다.' }, { status: 401 });
     }
+    if (typeof payload !== 'object' || !('userId' in payload)) {
+      return NextResponse.json({ success: false, error: '토큰이 유효하지 않습니다.' }, { status: 401 });
+    }
     const { key } = await req.json();
     if (!key) {
       return NextResponse.json({ success: false, error: 'key 값이 필요합니다.' }, { status: 400 });
     }
     // 본인 소유의 키만 폐기
     const apiKey = await prisma.apiKey.findUnique({ where: { key } });
-    if (!apiKey || apiKey.userId !== payload.userId) {
+    if (!apiKey || apiKey.userId !== (payload as JwtPayload).userId) {
       return NextResponse.json({ success: false, error: '권한이 없거나 존재하지 않는 키입니다.' }, { status: 403 });
     }
     if (apiKey.revoked) {

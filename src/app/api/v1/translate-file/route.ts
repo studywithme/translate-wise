@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import JSZip from "jszip"
+import { verifyApiKey } from '@/lib/verifyApiKey';
 
 const SUPPORTED_FILE_TYPES = ["srt", "vtt", "txt", "json", "csv"] as const
 
@@ -137,6 +138,11 @@ function buildVTT(blocks: { time: string; text: string }[]) {
 }
 
 export async function POST(req: NextRequest) {
+  // API 키 검증
+  const result = await verifyApiKey(req);
+  if (!result.ok) {
+    return NextResponse.json({ success: false, error: result.error }, { status: result.status });
+  }
   try {
     const formData = await req.formData()
     const file = formData.get("file") as File
