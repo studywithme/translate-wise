@@ -3,10 +3,12 @@ import type { NextRequest } from 'next/server'
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  // 회원가입, 로그인 등 인증 전 API는 예외 처리
+  // 인증 관련 엔드포인트는 API 키 검증 예외 처리
   if (
     pathname.startsWith('/api/v1/auth/register') ||
-    pathname.startsWith('/api/v1/auth/login')
+    pathname.startsWith('/api/v1/auth/login') ||
+    pathname.startsWith('/api/v1/auth/me') ||
+    pathname.startsWith('/api/v1/auth/apikey')
   ) {
     return NextResponse.next();
   }
