@@ -2,6 +2,14 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  // 회원가입, 로그인 등 인증 전 API는 예외 처리
+  if (
+    pathname.startsWith('/api/v1/auth/register') ||
+    pathname.startsWith('/api/v1/auth/login')
+  ) {
+    return NextResponse.next();
+  }
   const apiKey = request.headers.get('x-api-key')
   // API 키 검증
   if (!apiKey || (apiKey !== process.env.NEXT_PUBLIC_API_KEY && apiKey !== process.env.INTERNAL_API_KEY)) {
