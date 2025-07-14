@@ -3,17 +3,6 @@ import { prisma } from './db'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 
-// API 키 검증 함수 (DB 없이 테스트용)
-export async function verifyApiKey(apiKey: string) {
-  if (apiKey === process.env.INTERNAL_API_KEY) {
-    return { id: 'internal', name: 'Internal API', apiKey, role: 'internal' }
-  }
-  if (process.env.NODE_ENV === 'development' && apiKey === process.env.NEXT_PUBLIC_API_KEY) {
-    return { id: 'public', name: 'Public API', apiKey, role: 'public' }
-  }
-  // DB 없이 테스트: 기타 키는 모두 거부
-  return null
-}
 
 // API 키 생성 함수
 export function generateApiKey() {
