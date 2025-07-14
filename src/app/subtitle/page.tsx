@@ -159,15 +159,13 @@ export default function SubtitlePage() {
               <input
                 type="checkbox"
                 value={lang.code}
-                checked={lang.code === 'en'}
-                disabled={lang.code !== 'en'}
-                readOnly
+                checked={targetLangs.includes(lang.code)}
+                onChange={handleLangChange}
               />
               {lang.label}
             </label>
           ))}
         </div>
-        <p className="text-xs text-gray-500 mt-2">※ 현재는 영어만 번역 대상으로 선택할 수 있습니다.</p>
       </div>
       <button
         className="px-6 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
