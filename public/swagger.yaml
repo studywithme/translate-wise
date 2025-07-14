@@ -1,13 +1,13 @@
 openapi: 3.0.3
 info:
-  title: TranslateWise Open API
+  title: ezTran AI Open API
   version: 1.0.0
   description: |
-    TranslateWise의 핵심 번역 API(OpenAPI 3.0 문서)
+    ezTran AI의 핵심 번역 API(OpenAPI 3.0 문서)
     
     ## 인증
     - 모든 API는 `x-api-key` 헤더에 발급받은 API 키를 포함해야 합니다.
-    - 키는 [키 발급 가이드](#section/API-키-발급-및-사용법) 참고
+    - 키 발급은 하단 "API 키 발급 및 사용법" 참고
     
     ## 지원 번역 모델
     - deepl: DeepL API
@@ -30,11 +30,34 @@ info:
     Content-Type: application/json
     ```
 
+    ---
+    
+    ## ⚠️ API 키 보안 및 프록시 구조 권장 안내
+    
+    - **API 키는 브라우저(클라이언트)에서 직접 사용하면 누구나 노출/도용이 가능합니다.**
+    - **실제 서비스/운영 환경에서는 반드시 서버(백엔드)에서만 API 키를 사용**해야 하며, 브라우저에서는 API 키를 절대 노출하지 마세요.
+    - **권장 구조:**
+      - 브라우저 → [고객사 자체 서버(프록시)] → ezTran API 서버
+      - 고객사 서버에서만 API 키를 환경변수로 보관/사용
+      - 브라우저는 고객사 서버에만 요청, 고객사 서버가 ezTran API에 키 포함 요청
+    - **B2B/기업 환경:**
+      - 고객사 웹사이트에서 직접 API 키를 사용하면 키가 노출되므로, 반드시 자체 서버 프록시 구조를 사용하세요.
+      - 부득이하게 브라우저에서 직접 사용할 경우, IP/Origin 제한, Rate Limit, 모니터링 등 보안 정책을 반드시 적용해야 합니다.
+    - **데모/체험 환경:**
+      - 데모 전용 API 키를 별도로 발급하고, 권한/요청 제한/모니터링을 강화하세요.
+    - **API 키 유출 시 즉시 폐기 및 재발급 필수!**
+    
+    자세한 구조/보안 가이드는 공식 문서 또는 ezTran 지원팀에 문의해 주세요.
+
 servers:
-  - url: https://your-domain.com
-    description: Production
   - url: http://localhost:3000
     description: Local
+  - url: http://192.168.1.62
+    description: Dev
+  - url: https://stage.eztran.ai
+    description: Stage
+  - url: https://eztran.ai
+    description: Production
 
 components:
   securitySchemes:
@@ -58,7 +81,7 @@ components:
         model:
           type: string
           enum: [deepl, gemini-1.5-flash, gpt-4o-mini]
-          default: gemini-1.5-flash
+          default: deepl
           description: "번역 모델"
         options:
           type: object

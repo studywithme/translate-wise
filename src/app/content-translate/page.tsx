@@ -44,11 +44,10 @@ export default function ContentTranslatePage() {
     setIsTranslating(true);
     setIsValidating(false); // 번역 시작 시 검증 중 상태 해제
     try {
-      const response = await fetch('/api/v1/translate', {
+      const response = await fetch('/api/proxy-translate', {
         method: 'POST',
         headers: { 
-          'Content-Type': 'application/json',
-          'x-api-key': process.env.NEXT_PUBLIC_API_KEY as string
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           text: sourceText,

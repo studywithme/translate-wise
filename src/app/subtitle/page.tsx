@@ -80,12 +80,9 @@ export default function SubtitlePage() {
     formData.append("model", "deepl"); // 필요시 모델 선택 UI 연동
     formData.append("fileType", "srt"); // 파일 형식 명시
 
-    // 파일 번역 API 호출
-    const res = await fetch("/api/v1/translate-file", {
+    // 파일 번역 API 호출 (프록시 사용)
+    const res = await fetch("/api/proxy-translate-file", {
       method: "POST",
-      headers: {
-        'x-api-key': process.env.NEXT_PUBLIC_API_KEY as string
-      },
       body: formData,
     });
 

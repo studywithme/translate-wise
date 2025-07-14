@@ -150,6 +150,8 @@ npx prisma db push
 ### 3) 개발 서버 실행
 ```bash
 npm run dev
+
+npm run dev > server.log 2>&1
 ```
 
 ### 4) 프로덕션 빌드 및 실행

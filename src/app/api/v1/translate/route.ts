@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server"
-import { verifyApiKey } from '@/lib/verifyApiKey';
 import logger from '@/lib/logger';
 
 const deeplLangMap: Record<string, string> = {
@@ -7,12 +6,7 @@ const deeplLangMap: Record<string, string> = {
 }
 
 export async function POST(req: NextRequest) {
-  // API 키 검증
-  const result = await verifyApiKey(req);
-  if (!result.ok) {
-    logger.warn(`번역 API 키 검증 실패: ${result.error}`);
-    return NextResponse.json({ success: false, error: result.error }, { status: result.status });
-  }
+  // 미들웨어에서 이미 API 키 검증 완료, 비즈니스 로직만 처리
   try {
     const { text, targetLanguages, model, options = {} } = await req.json()
     if (!text || !targetLanguages) {
