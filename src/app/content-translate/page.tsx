@@ -84,11 +84,10 @@ export default function ContentTranslatePage() {
     if (!sourceText.trim() || translatedTexts[langCode]) return;
     setIsTranslating(true);
     try {
-      const response = await fetch('/api/v1/translate', {
+      const response = await fetch('/api/proxy-translate', {
         method: 'POST',
         headers: { 
-          'Content-Type': 'application/json',
-          'x-api-key': process.env.NEXT_PUBLIC_API_KEY as string
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           text: sourceText,
@@ -125,11 +124,10 @@ export default function ContentTranslatePage() {
     setIsValidating(true);
     setValidationResult('');
     try {
-      const response = await fetch('/api/v1/translate', {
+      const response = await fetch('/api/proxy-translate', {
         method: 'POST',
         headers: { 
-          'Content-Type': 'application/json',
-          'x-api-key': process.env.NEXT_PUBLIC_API_KEY as string
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           text: translatedTexts[activeTab],
