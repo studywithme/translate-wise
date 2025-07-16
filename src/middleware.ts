@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { PrismaClient } from '@prisma/client'
+import logger from './lib/logger'
 
 const prisma = new PrismaClient()
 
@@ -39,6 +40,7 @@ export async function middleware(request: NextRequest) {
     
     return NextResponse.next()
   } catch (error) {
+    logger.error({ error }, 'API 미들웨어 서버 오류')
     return NextResponse.json({ success: false, error: { code: 'SERVER_ERROR', message: '서버 오류' } }, { status: 500 })
   }
 }

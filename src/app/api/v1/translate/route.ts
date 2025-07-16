@@ -9,7 +9,9 @@ export async function POST(req: NextRequest) {
   // 미들웨어에서 이미 API 키 검증 완료, 비즈니스 로직만 처리
   try {
     const { text, targetLanguages, model, options = {} } = await req.json()
+    logger.debug({ text, targetLanguages, model }, 'translate 요청 파라미터');
     if (!text || !targetLanguages) {
+      logger.warn('translate: 필수 파라미터 누락');
       return NextResponse.json({ success: false, error: { code: "VALIDATION_ERROR", message: "필수 파라미터가 누락되었습니다." } }, { status: 400 })
     }
     const selectedModel = model || "deepl"
@@ -89,7 +91,7 @@ export async function POST(req: NextRequest) {
       default:
         return NextResponse.json({ success: false, error: { code: "UNSUPPORTED_MODEL", message: `지원하지 않는 번역 모델: ${selectedModel}` } }, { status: 400 })
     }
-    logger.info('번역 API 요청 성공');
+    logger.info('번역 API 요청 성공', { model, langs: targetLanguages });
     return NextResponse.json({ success: true, data: { translations: results } })
   } catch (error) {
     logger.error({ err: error }, '번역 API 서버 오류');

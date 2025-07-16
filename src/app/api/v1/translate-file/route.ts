@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import JSZip from "jszip"
+import logger from '@/lib/logger'
 
 const SUPPORTED_FILE_TYPES = ["srt", "vtt", "txt", "json", "csv"] as const
 
@@ -139,12 +140,15 @@ function buildVTT(blocks: { time: string; text: string }[]) {
 export async function POST(req: NextRequest) {
   // 미들웨어에서 이미 API 키 검증 완료, 비즈니스 로직만 처리
   try {
+    logger.info('translate-file API 요청');
     const formData = await req.formData()
     const file = formData.get("file") as File
     const targetLanguages = JSON.parse(formData.get("targetLanguages") as string)
     const model = (formData.get("model") as string) || "deepl"
     const fileType = (formData.get("fileType") as string) || "srt"
+    logger.debug({ fileType, model, targetLanguages }, 'translate-file 요청 파라미터');
     if (!file || !targetLanguages) {
+      logger.warn('translate-file: 파일 또는 타겟 언어 누락');
       return NextResponse.json({ success: false, error: { code: "VALIDATION_ERROR", message: "필수 파라미터가 누락되었습니다." } }, { status: 400 })
     }
     const origName = (file as any).name || "file"
@@ -215,6 +219,7 @@ export async function POST(req: NextRequest) {
     // 응답: 단일 언어면 바로 파일, 여러 언어면 zip
     if (targetLanguages.length === 1) {
       const lang = targetLanguages[0]
+      logger.info('translate-file: 단일 언어 번역 성공', { lang, fileType });
       return new NextResponse(translatedFiles[lang], {
         status: 200,
         headers: {
@@ -228,6 +233,7 @@ export async function POST(req: NextRequest) {
         zip.file(`${baseName}-${lang}.${fileType}`, translatedFiles[lang])
       }
       const zipBlob = await zip.generateAsync({ type: "uint8array" })
+      logger.info('translate-file: 다중 언어 번역 ZIP 성공', { langs: targetLanguages, fileType });
       return new NextResponse(zipBlob, {
         status: 200,
         headers: {
@@ -237,6 +243,7 @@ export async function POST(req: NextRequest) {
       })
     }
   } catch (error) {
+    logger.error({ err: error }, 'translate-file API 서버 오류');
     return NextResponse.json({ success: false, error: { code: "SERVER_ERROR", message: "파일 번역 처리 중 오류 발생" } }, { status: 500 })
   }
 }
