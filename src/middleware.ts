@@ -1,9 +1,5 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { PrismaClient } from '@prisma/client'
-import logger from './lib/logger'
-
-const prisma = new PrismaClient()
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -23,26 +19,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
   
-  // Open API - DB 기반 API 키 검증
+  // Open API - API 키 헤더 존재만 체크 (실제 검증은 각 API Route에서)
   const apiKey = request.headers.get('x-api-key')
   if (!apiKey) {
     return NextResponse.json({ success: false, error: { code: 'AUTH_ERROR', message: 'API 키가 필요합니다.' } }, { status: 401 })
   }
-  
-  try {
-    const key = await prisma.apiKey.findUnique({ where: { key: apiKey } });
-    if (!key || key.revoked) {
-      return NextResponse.json({ success: false, error: { code: 'AUTH_ERROR', message: '유효하지 않거나 폐기된 API 키입니다.' } }, { status: 403 })
-    }
-    
-    // 마지막 사용일 갱신(비동기, 실패 무시)
-    prisma.apiKey.update({ where: { key: apiKey }, data: { lastUsedAt: new Date() } }).catch(() => {});
-    
-    return NextResponse.next()
-  } catch (error) {
-    logger.error({ error }, 'API 미들웨어 서버 오류')
-    return NextResponse.json({ success: false, error: { code: 'SERVER_ERROR', message: '서버 오류' } }, { status: 500 })
-  }
+
+  return NextResponse.next();
 }
 
 export const config = {

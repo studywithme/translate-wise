@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import JSZip from "jszip"
 import logger from '@/lib/logger'
+import { PrismaClient } from '@prisma/client'
+const prisma = new PrismaClient();
 
 const SUPPORTED_FILE_TYPES = ["srt", "vtt", "txt", "json", "csv"] as const
 
@@ -138,9 +140,20 @@ function buildVTT(blocks: { time: string; text: string }[]) {
 }
 
 export async function POST(req: NextRequest) {
-  // 미들웨어에서 이미 API 키 검증 완료, 비즈니스 로직만 처리
+  logger.info('translate-file API 요청');
+  const apiKey = req.headers.get('x-api-key');
+  if (!apiKey) {
+    logger.warn('translate-file: API 키 없음');
+    return NextResponse.json({ success: false, error: { code: 'AUTH_ERROR', message: 'API 키가 필요합니다.' } }, { status: 401 });
+  }
+  const key = await prisma.apiKey.findUnique({ where: { key: apiKey } });
+  if (!key || key.revoked) {
+    logger.warn('translate-file: 유효하지 않거나 폐기된 API 키', { apiKey });
+    return NextResponse.json({ success: false, error: { code: 'AUTH_ERROR', message: '유효하지 않거나 폐기된 API 키입니다.' } }, { status: 403 });
+  }
+  // 마지막 사용일 갱신(비동기, 실패 무시)
+  prisma.apiKey.update({ where: { key: apiKey }, data: { lastUsedAt: new Date() } }).catch(() => {});
   try {
-    logger.info('translate-file API 요청');
     const formData = await req.formData()
     const file = formData.get("file") as File
     const targetLanguages = JSON.parse(formData.get("targetLanguages") as string)

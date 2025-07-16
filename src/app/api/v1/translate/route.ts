@@ -1,11 +1,25 @@
 import { NextRequest, NextResponse } from "next/server"
 import logger from '@/lib/logger';
+import { PrismaClient } from '@prisma/client'
+const prisma = new PrismaClient();
 
 const deeplLangMap: Record<string, string> = {
   en: "EN", ja: "JA", zh: "ZH", de: "DE", fr: "FR", es: "ES", it: "IT", ru: "RU", pt: "PT"
 }
 
 export async function POST(req: NextRequest) {
+  const apiKey = req.headers.get('x-api-key');
+  if (!apiKey) {
+    logger.warn('translate: API 키 없음');
+    return NextResponse.json({ success: false, error: { code: 'AUTH_ERROR', message: 'API 키가 필요합니다.' } }, { status: 401 });
+  }
+  const key = await prisma.apiKey.findUnique({ where: { key: apiKey } });
+  if (!key || key.revoked) {
+    logger.warn('translate: 유효하지 않거나 폐기된 API 키', { apiKey });
+    return NextResponse.json({ success: false, error: { code: 'AUTH_ERROR', message: '유효하지 않거나 폐기된 API 키입니다.' } }, { status: 403 });
+  }
+  // 마지막 사용일 갱신(비동기, 실패 무시)
+  prisma.apiKey.update({ where: { key: apiKey }, data: { lastUsedAt: new Date() } }).catch(() => {});
   // 미들웨어에서 이미 API 키 검증 완료, 비즈니스 로직만 처리
   try {
     const { text, targetLanguages, model, options = {} } = await req.json()
