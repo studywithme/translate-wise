@@ -8,8 +8,8 @@ import { AuthProvider } from '../contexts/AuthContext'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Translate Wise',
-  description: 'AI 번역 비교 SaaS',
+  title: 'eztran.ai',
+  description: '무료 AI 번역 서비스',
   icons: {
     icon: '/favicon.svg',
   },
