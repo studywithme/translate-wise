@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useSettings } from '../../contexts/SettingsContext';
+import { useSettings } from '../../../contexts/SettingsContext';
 import { franc } from 'franc';
 import { ClipboardIcon } from '@heroicons/react/24/outline';
 

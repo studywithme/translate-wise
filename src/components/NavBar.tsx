@@ -9,13 +9,13 @@ export default function NavBar() {
   // 현재 경로를 가져옴 (클라이언트에서 안전하게 동작)
   const pathname = usePathname();
   const { user, logout } = useAuth();
-  // 메뉴 목록
+  // 메뉴 목록 (B2B 경로로 변경)
   const menuItems = [
-    { name: '컨텐츠 번역', href: '/content-translate' },
-    { name: '자막 번역', href: '/subtitle' },
-    { name: 'HTML 번역', href: '/html-translate' },
-    { name: '번역 작업', href: '/translate-task' },
-    { name: '비용 견적', href: '/cost-estimate' },
+    { name: '컨텐츠 번역', href: '/b2b/content-translate' },
+    { name: '자막 번역', href: '/b2b/subtitle' },
+    { name: 'HTML 번역', href: '/b2b/html-translate' },
+    { name: '번역 작업', href: '/b2b/translate-task' },
+    { name: '비용 견적', href: '/b2b/cost-estimate' },
   ];
   return (
     <nav className="w-full bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 mb-6 shadow-sm">
