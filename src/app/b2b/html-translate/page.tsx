@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { useSettings } from "../../contexts/SettingsContext";
+import { useSettings } from "../../../contexts/SettingsContext";
 
 export default function HtmlTranslatePage() {
   const { settings } = useSettings();
