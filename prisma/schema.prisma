@@ -18,6 +18,7 @@ model User {
   updatedAt DateTime @updatedAt
   usage     Usage[]
   apiKeys   ApiKey[]
+  feedbacks Feedback[]
 }
 
 model Usage {
@@ -37,6 +38,17 @@ model ApiKey {
   revoked     Boolean  @default(false)
   createdAt   DateTime @default(now())
   lastUsedAt  DateTime?
+}
+
+model Feedback {
+  id        String   @id @default(cuid())
+  name      String
+  rating    Int      @default(5)
+  content   String   @db.Text
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum Plan {
