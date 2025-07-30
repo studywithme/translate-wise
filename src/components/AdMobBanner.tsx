@@ -128,12 +128,12 @@ const AdMobBanner: React.FC<AdMobBannerProps> = ({
         </div>
       )}
       
-      {/* 실제 AdMob 광고 (로컬호스트가 아닐 때만) */}
+      {/* 실제 Google AdSense 광고 (로컬호스트가 아닐 때만) */}
       {isClient && !window.location.hostname.includes('localhost') && (
         <ins
           className="adsbygoogle"
           style={{ display: 'block' }}
-          data-ad-client="ca-pub-3940256099942544"
+          data-ad-client="ca-pub-7286979091056475"
           data-ad-slot="6300978111"
           data-ad-format="auto"
           data-full-width-responsive="true"
