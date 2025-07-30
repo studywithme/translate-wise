@@ -22,6 +22,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko">
+      <head>
+        {/* AdMob SDK */}
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3940256099942544"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body className={inter.className}>
         <AuthProvider>
           <SettingsProvider>

@@ -5,6 +5,7 @@ import { franc } from 'franc';
 import { ClipboardDocumentIcon, Cog6ToothIcon, ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
 import SettingsModal from '@/components/SettingsModal';
 import { useSettings } from '@/contexts/SettingsContext';
+import AdMobBanner from '@/components/AdMobBanner';
 
 // 지원 언어 목록
 const LANGUAGES = [
@@ -256,146 +257,188 @@ export default function B2CHome() {
 
       {/* 메인 콘텐츠 */}
       <div className="flex flex-1">
-        {/* 1. 원본 입력 영역 */}
-        <div className="flex-1 flex flex-col p-6 border-r border-gray-200">
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-lg font-semibold text-gray-900">원문</h2>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-700">번역 엔진 선택:</span>
-                <select 
-                  value={selectedEngine}
-                  onChange={(e) => setSelectedEngine(e.target.value)}
-                  className="px-3 py-1 border border-gray-300 rounded text-sm text-gray-900 bg-white"
-                >
-                  {TRANSLATION_ENGINES.map(engine => (
-                    <option key={engine.code} value={engine.code}>
-                      {engine.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            
-            <div className="mb-2">
-              <label className="block font-semibold text-gray-700 mb-1">원본 언어</label>
-              <select 
-                value={sourceLang} 
-                onChange={(e) => {
-                  setSourceLang(e.target.value);
-                  const nextTab = settings.targetLanguages.find(lang => lang.code !== (e.target.value === 'auto' ? detectedLang1 : e.target.value));
-                  if (nextTab) setActiveTab(nextTab.code);
-                }}
-                className="w-full bg-transparent text-gray-700 font-medium focus:outline-none border border-gray-300 rounded px-3 py-2"
-              >
-                {settings.sourceLanguages.map(lang => (
-                  <option key={lang.code} value={lang.code}>{lang.name}</option>
-                ))}
-              </select>
-              {shouldShowDetectedLang && (
-                <div className="mt-1 text-sm text-blue-600 font-semibold">
-                  감지된 언어: {langNameMap[detectedLang1] || detectedLang1}
-                </div>
-              )}
-              {/* 언어 감지 중일 때 표시 */}
-              {sourceText.trim().length > 0 && !shouldShowDetectedLang && (
-                <div className="mt-1 text-sm text-gray-500">언어 감지 중...</div>
-              )}
-            </div>
-          </div>
-          
-          <textarea
-            value={sourceText}
-            onChange={(e) => setSourceText(e.target.value)}
-            placeholder="번역할 텍스트를 입력하세요..."
-            className="flex-1 w-full p-4 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white placeholder-gray-500"
+        {/* 왼쪽 광고 (데스크톱에서만 표시) */}
+        <div className="hidden lg:flex w-40 flex-shrink-0 flex justify-center items-start pt-6">
+          <AdMobBanner 
+            adUnitId="ca-app-pub-3940256099942544/6300978111"
+            adSize="skyscraper"
+            className="w-160px"
           />
-          
-          {/* 번역 대상 언어 선택 */}
-          <div className="mt-4 mb-2">
-            <label className="block font-semibold text-gray-700 mb-2">번역 대상 언어</label>
-            <div className="flex gap-1 flex-wrap">
-              {settings.targetLanguages.map(lang => {
-                const isDisabled = lang.code === (sourceLang === 'auto' ? detectedLang1 : sourceLang);
-                return (
-                  <button
-                    key={lang.code}
-                    onClick={() => !isDisabled && setActiveTab(lang.code)}
-                    disabled={isDisabled}
-                    className={`px-4 py-2 text-sm font-medium rounded transition-colors ${
-                      activeTab === lang.code
-                        ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                        : isDisabled
-                          ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                          : 'text-gray-600 hover:bg-gray-100'
-                    }`}
-                  >
-                    {lang.name}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          
-          <button
-            onClick={handleTranslate}
-            disabled={isTranslating || !sourceText.trim()}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:text-gray-200 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
-          >
-            ▶ {isTranslating ? '번역 중...' : '번역하기'}
-          </button>
         </div>
 
-        {/* 2. 번역 결과 영역 */}
-        <div className="flex-1 flex flex-col p-6 border-r border-gray-200">
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">
-              번역 결과 ({langNameMap[activeTab] || activeTab})
-            </h2>
+        {/* 중앙 콘텐츠 영역 */}
+        <div className="flex-1 flex flex-col">
+          {/* 상단 광고 */}
+          <div className="mb-6 flex justify-center">
+            <AdMobBanner 
+              adUnitId="ca-app-pub-3940256099942544/6300978111"
+              adSize="largeBanner"
+              className="w-full max-w-728px"
+            />
           </div>
           
-          <div className="relative flex-1 overflow-y-auto mb-4">
-            {translatedTexts[activeTab] ? (
-              <div className="flex flex-col h-full">
-                <p className="text-gray-700 leading-relaxed whitespace-pre-line flex-1">{translatedTexts[activeTab]}</p>
-                <div className="flex justify-end mt-2">
-                  <button
-                    onClick={handleCopyResult}
-                    className="p-1 bg-white rounded-full border border-gray-300 hover:bg-blue-100 transition"
-                    title="복사"
+          {/* 모바일용 하단 광고 (데스크톱에서는 숨김) */}
+          <div className="lg:hidden mt-4 flex justify-center">
+            <AdMobBanner 
+              adUnitId="ca-app-pub-3940256099942544/6300978111"
+              adSize="banner"
+              className="w-full max-w-320px"
+            />
+          </div>
+
+          {/* 기존 3단 레이아웃 */}
+          <div className="flex flex-1">
+            {/* 1. 원본 입력 영역 */}
+            <div className="flex-1 flex flex-col p-6 border-r border-gray-200">
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="text-lg font-semibold text-gray-900">원문</h2>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-700">번역 엔진 선택:</span>
+                    <select 
+                      value={selectedEngine}
+                      onChange={(e) => setSelectedEngine(e.target.value)}
+                      className="px-3 py-1 border border-gray-300 rounded text-sm text-gray-900 bg-white"
+                    >
+                      {TRANSLATION_ENGINES.map(engine => (
+                        <option key={engine.code} value={engine.code}>
+                          {engine.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="mb-2">
+                  <label className="block font-semibold text-gray-700 mb-1">원본 언어</label>
+                  <select 
+                    value={sourceLang} 
+                    onChange={(e) => {
+                      setSourceLang(e.target.value);
+                      const nextTab = settings.targetLanguages.find(lang => lang.code !== (e.target.value === 'auto' ? detectedLang1 : e.target.value));
+                      if (nextTab) setActiveTab(nextTab.code);
+                    }}
+                    className="w-full bg-transparent text-gray-700 font-medium focus:outline-none border border-gray-300 rounded px-3 py-2"
                   >
-                    <ClipboardDocumentIcon className="w-5 h-5 text-blue-600" />
-                  </button>
+                    {settings.sourceLanguages.map(lang => (
+                      <option key={lang.code} value={lang.code}>{lang.name}</option>
+                    ))}
+                  </select>
+                  {shouldShowDetectedLang && (
+                    <div className="mt-1 text-sm text-blue-600 font-semibold">
+                      감지된 언어: {langNameMap[detectedLang1] || detectedLang1}
+                    </div>
+                  )}
+                  {/* 언어 감지 중일 때 표시 */}
+                  {sourceText.trim().length > 0 && !shouldShowDetectedLang && (
+                    <div className="mt-1 text-sm text-gray-500">언어 감지 중...</div>
+                  )}
                 </div>
               </div>
-            ) : (
-              <p className="text-gray-400">번역 결과가 여기에 표시됩니다.</p>
-            )}
+              
+              <textarea
+                value={sourceText}
+                onChange={(e) => setSourceText(e.target.value)}
+                placeholder="번역할 텍스트를 입력하세요..."
+                className="flex-1 w-full p-4 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white placeholder-gray-500"
+              />
+              
+              {/* 번역 대상 언어 선택 */}
+              <div className="mt-4 mb-2">
+                <label className="block font-semibold text-gray-700 mb-2">번역 대상 언어</label>
+                <div className="flex gap-1 flex-wrap">
+                  {settings.targetLanguages.map(lang => {
+                    const isDisabled = lang.code === (sourceLang === 'auto' ? detectedLang1 : sourceLang);
+                    return (
+                      <button
+                        key={lang.code}
+                        onClick={() => !isDisabled && setActiveTab(lang.code)}
+                        disabled={isDisabled}
+                        className={`px-4 py-2 text-sm font-medium rounded transition-colors ${
+                          activeTab === lang.code
+                            ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                            : isDisabled
+                              ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                              : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        {lang.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              
+              <button
+                onClick={handleTranslate}
+                disabled={isTranslating || !sourceText.trim()}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:text-gray-200 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+              >
+                ▶ {isTranslating ? '번역 중...' : '번역하기'}
+              </button>
+            </div>
+
+            {/* 2. 번역 결과 영역 */}
+            <div className="flex-1 flex flex-col p-6 border-r border-gray-200">
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold text-gray-900 mb-2">
+                  번역 결과 ({langNameMap[activeTab] || activeTab})
+                </h2>
+              </div>
+              
+              <div className="relative flex-1 overflow-y-auto mb-4">
+                {translatedTexts[activeTab] ? (
+                  <div className="flex flex-col h-full">
+                    <p className="text-gray-700 leading-relaxed whitespace-pre-line flex-1">{translatedTexts[activeTab]}</p>
+                    <div className="flex justify-end mt-2">
+                      <button
+                        onClick={handleCopyResult}
+                        className="p-1 bg-white rounded-full border border-gray-300 hover:bg-blue-100 transition"
+                        title="복사"
+                      >
+                        <ClipboardDocumentIcon className="w-5 h-5 text-blue-600" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-gray-400">번역 결과가 여기에 표시됩니다.</p>
+                )}
+              </div>
+              
+              {/* 검증하기 버튼을 번역 결과 영역으로 이동 */}
+              <button
+                onClick={handleValidate}
+                disabled={!translatedTexts[activeTab] || isValidating}
+                className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:text-gray-200 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+              >
+                ▶ {isValidating ? '검증 중...' : '원문 언어로 다시 번역하기'}
+              </button>
+            </div>
+
+            {/* 3. 검증 결과 영역 */}
+            <div className="flex-1 flex flex-col p-6">
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">검증 결과</h2>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto bg-gray-50 rounded-lg border border-gray-200 p-4">
+                {validationResult ? (
+                  <p className="text-blue-700 whitespace-pre-line">{validationResult}</p>
+                ) : (
+                  <p className="text-gray-400">검증 결과가 여기에 표시됩니다.</p>
+                )}
+              </div>
+            </div>
           </div>
-          
-          {/* 검증하기 버튼을 번역 결과 영역으로 이동 */}
-          <button
-            onClick={handleValidate}
-            disabled={!translatedTexts[activeTab] || isValidating}
-            className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:text-gray-200 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
-          >
-                          ▶ {isValidating ? '검증 중...' : '원문 언어로 다시 번역하기'}
-          </button>
         </div>
 
-        {/* 3. 검증 결과 영역 */}
-        <div className="flex-1 flex flex-col p-6">
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">검증 결과</h2>
-          </div>
-          
-          <div className="flex-1 overflow-y-auto bg-gray-50 rounded-lg border border-gray-200 p-4">
-            {validationResult ? (
-              <p className="text-blue-700 whitespace-pre-line">{validationResult}</p>
-            ) : (
-              <p className="text-gray-400">검증 결과가 여기에 표시됩니다.</p>
-            )}
-          </div>
+        {/* 오른쪽 광고 (데스크톱에서만 표시) */}
+        <div className="hidden lg:flex w-40 flex-shrink-0 flex justify-center items-start pt-6">
+          <AdMobBanner 
+            adUnitId="ca-app-pub-3940256099942544/6300978111"
+            adSize="skyscraper"
+            className="w-160px"
+          />
         </div>
       </div>
       
