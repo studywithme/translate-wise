@@ -44,7 +44,16 @@ export default function B2CHome() {
 
   // franc(ISO 639-3) → 639-1 매핑
   const iso3to1Map: Record<string, string> = { kor: 'ko', eng: 'en', jpn: 'ja', cmn: 'zh', spa: 'es', fra: 'fr', deu: 'de', ita: 'it', rus: 'ru', por: 'pt' };
-  const detectedLang1 = useMemo(() => iso3to1Map[detectedLang] || detectedLang, [detectedLang]);
+  
+  // 감지된 언어 표시 로직 개선
+  const shouldShowDetectedLang = useMemo(() => {
+    return detectedLang && detectedLang !== 'und' && detectedLang !== 'un';
+  }, [detectedLang]);
+  
+  const detectedLang1 = useMemo(() => {
+    if (!shouldShowDetectedLang) return '';
+    return iso3to1Map[detectedLang] || detectedLang;
+  }, [detectedLang, shouldShowDetectedLang]);
 
   const langNameMap: Record<string, string> = {
     ko: '한국어', en: '영어', ja: '일본어', zh: '중국어', es: '스페인어', fr: '프랑스어', de: '독일어', it: '이탈리아어', ru: '러시아어', pt: '포르투갈어', auto: '자동인식'
@@ -265,9 +274,6 @@ export default function B2CHome() {
                     </option>
                   ))}
                 </select>
-                <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
-                  {detectedLang && sourceLang === 'auto' ? `${langNameMap[detectedLang1] || detectedLang1} 감지` : '언어 감지'}
-                </span>
               </div>
             </div>
             
@@ -286,10 +292,14 @@ export default function B2CHome() {
                   <option key={lang.code} value={lang.code}>{lang.name}</option>
                 ))}
               </select>
-              {detectedLang && sourceLang === 'auto' && (
+              {shouldShowDetectedLang && (
                 <div className="mt-1 text-sm text-blue-600 font-semibold">
                   감지된 언어: {langNameMap[detectedLang1] || detectedLang1}
                 </div>
+              )}
+              {/* 언어 감지 중일 때 표시 */}
+              {sourceText.trim().length > 0 && !shouldShowDetectedLang && (
+                <div className="mt-1 text-sm text-gray-500">언어 감지 중...</div>
               )}
             </div>
           </div>
@@ -301,26 +311,16 @@ export default function B2CHome() {
             className="flex-1 w-full p-4 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white placeholder-gray-500"
           />
           
-          <button
-            onClick={handleTranslate}
-            disabled={isTranslating || !sourceText.trim()}
-            className="w-full mt-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:text-gray-200 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
-          >
-            ▶ {isTranslating ? '번역 중...' : '번역하기'}
-          </button>
-        </div>
-
-        {/* 2. 번역 결과 영역 */}
-        <div className="flex-1 flex flex-col p-6 border-r border-gray-200">
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">번역 결과</h2>
-            <div className="flex gap-1 flex-wrap mb-2">
+          {/* 번역 대상 언어 선택 */}
+          <div className="mt-4 mb-2">
+            <label className="block font-semibold text-gray-700 mb-2">번역 대상 언어</label>
+            <div className="flex gap-1 flex-wrap">
               {settings.targetLanguages.map(lang => {
                 const isDisabled = lang.code === (sourceLang === 'auto' ? detectedLang1 : sourceLang);
                 return (
                   <button
                     key={lang.code}
-                    onClick={() => !isDisabled && handleTabClick(lang.code)}
+                    onClick={() => !isDisabled && setActiveTab(lang.code)}
                     disabled={isDisabled}
                     className={`px-4 py-2 text-sm font-medium rounded transition-colors ${
                       activeTab === lang.code
@@ -335,6 +335,23 @@ export default function B2CHome() {
                 );
               })}
             </div>
+          </div>
+          
+          <button
+            onClick={handleTranslate}
+            disabled={isTranslating || !sourceText.trim()}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:text-gray-200 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+          >
+            ▶ {isTranslating ? '번역 중...' : '번역하기'}
+          </button>
+        </div>
+
+        {/* 2. 번역 결과 영역 */}
+        <div className="flex-1 flex flex-col p-6 border-r border-gray-200">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">
+              번역 결과 ({langNameMap[activeTab] || activeTab})
+            </h2>
           </div>
           
           <div className="relative flex-1 overflow-y-auto mb-4">
@@ -362,7 +379,7 @@ export default function B2CHome() {
             disabled={!translatedTexts[activeTab] || isValidating}
             className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:text-gray-200 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
           >
-            ▶ {isValidating ? '검증 중...' : '검증하기'}
+                          ▶ {isValidating ? '검증 중...' : '원문 언어로 다시 번역하기'}
           </button>
         </div>
 

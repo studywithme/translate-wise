@@ -19,8 +19,16 @@ export default function ContentTranslatePage() {
 
   // franc(ISO 639-3) → 639-1 매핑
   const iso3to1Map: Record<string, string> = { kor: 'ko', eng: 'en', jpn: 'ja', cmn: 'zh', spa: 'es', fra: 'fr', deu: 'de', ita: 'it', rus: 'ru', por: 'pt' };
-  // 감지된 언어의 639-1 코드
-  const detectedLang1 = useMemo(() => iso3to1Map[detectedLang] || detectedLang, [detectedLang]);
+  // 감지된 언어 표시 로직 개선
+  const shouldShowDetectedLang = useMemo(() => {
+    return detectedLang && detectedLang !== 'und' && detectedLang !== 'un';
+  }, [detectedLang]);
+
+  // 감지된 언어의 639-1 코드 (und 제외)
+  const detectedLang1 = useMemo(() => {
+    if (!shouldShowDetectedLang) return '';
+    return iso3to1Map[detectedLang] || detectedLang;
+  }, [detectedLang, shouldShowDetectedLang]);
 
   // 한글 주석: string 인덱스 시그니처 추가로 타입 에러 방지
   const langNameMap: Record<string, string> = {
@@ -202,13 +210,17 @@ export default function ContentTranslatePage() {
               ))}
             </select>
             {/* 한글 주석: 자동인식 시 감지된 언어를 한글로 안내 (폰트 크게) */}
-            {settings.sourceLanguages.some(lang => lang.code === 'auto') && detectedLang && (
+            {settings.sourceLanguages.some(lang => lang.code === 'auto') && shouldShowDetectedLang && (
               <>
                 <div className="mt-1 text-lg text-blue-600 dark:text-blue-300 font-semibold">감지된 언어: {langNameMap[detectedLang1] || detectedLang1}</div>
                 {sourceText.length < 15 && (
                   <div className="text-xs text-blue-500 mt-1">※ 입력이 짧으면 언어 감지 정확도가 낮아질 수 있습니다.</div>
                 )}
               </>
+            )}
+            {/* 언어 감지 중일 때 표시 */}
+            {settings.sourceLanguages.some(lang => lang.code === 'auto') && sourceText.trim().length > 0 && !shouldShowDetectedLang && (
+              <div className="mt-1 text-sm text-gray-500 dark:text-gray-400">언어 감지 중...</div>
             )}
           </div>
           <textarea
@@ -217,25 +229,17 @@ export default function ContentTranslatePage() {
             placeholder="번역할 텍스트를 입력하세요..."
             className="flex-1 w-full p-4 resize-none border-none focus:outline-none text-gray-700 dark:bg-gray-900 dark:text-gray-100 rounded-lg"
           />
-          <button
-            onClick={handleTranslate}
-            disabled={isTranslating || !sourceText.trim()}
-            className="w-full mt-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 dark:bg-blue-800 dark:hover:bg-blue-900 dark:disabled:bg-gray-700"
-          >
-            ▶ {isTranslating ? '번역 중...' : '번역하기'}
-          </button>
-        </div>
-        {/* 2. 번역 결과 영역 */}
-        <div className="flex flex-col h-[600px] bg-white rounded-lg border border-gray-300 dark:bg-gray-800 dark:border-gray-700 p-4">
-          <div className="mb-2">
-            <label className="block font-semibold text-gray-700 dark:text-gray-100 mb-1">번역 결과</label>
-            <div className="flex gap-1 flex-wrap mb-2">
+          
+          {/* 번역 대상 언어 선택 */}
+          <div className="mt-4 mb-2">
+            <label className="block font-semibold text-gray-700 dark:text-gray-100 mb-2">번역 대상 언어</label>
+            <div className="flex gap-1 flex-wrap">
               {settings.targetLanguages.map(lang => {
                 const isDisabled = lang.code === (sourceLang === 'auto' ? detectedLang1 : sourceLang);
                 return (
                   <button
                     key={lang.code}
-                    onClick={() => !isDisabled && handleTabClick(lang.code)}
+                    onClick={() => !isDisabled && setActiveTab(lang.code)}
                     disabled={isDisabled}
                     className={`px-4 py-2 text-sm font-medium rounded transition-colors ${
                       activeTab === lang.code
@@ -250,6 +254,22 @@ export default function ContentTranslatePage() {
                 );
               })}
             </div>
+          </div>
+          
+          <button
+            onClick={handleTranslate}
+            disabled={isTranslating || !sourceText.trim()}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 dark:bg-blue-800 dark:hover:bg-blue-900 dark:disabled:bg-gray-700"
+          >
+            ▶ {isTranslating ? '번역 중...' : '번역하기'}
+          </button>
+        </div>
+        {/* 2. 번역 결과 영역 */}
+        <div className="flex flex-col h-[600px] bg-white rounded-lg border border-gray-300 dark:bg-gray-800 dark:border-gray-700 p-4">
+          <div className="mb-2">
+            <label className="block font-semibold text-gray-700 dark:text-gray-100 mb-1">
+              번역 결과 ({langNameMap[activeTab] || activeTab})
+            </label>
           </div>
           <div className="relative flex-1 overflow-y-auto">
             {translatedTexts[activeTab] ? (
@@ -289,7 +309,7 @@ export default function ContentTranslatePage() {
               disabled={!translatedTexts[activeTab] || isValidating}
               className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 dark:bg-green-800 dark:hover:bg-green-900 dark:disabled:bg-gray-700"
             >
-              ▶ {isValidating ? '검증 중...' : '검증하기'}
+              ▶ {isValidating ? '검증 중...' : '원문 언어로 다시 번역하기'}
             </button>
           </div>
           <div className="flex-1 overflow-y-auto bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 mt-2 min-h-[48px]">
