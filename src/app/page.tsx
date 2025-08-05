@@ -265,53 +265,53 @@ export default function B2CHome() {
             {/* 1. 원본 입력 영역 */}
             <div className="flex-1 flex flex-col p-6 border-r border-gray-200">
               <div className="mb-4">
-                
-            
-            <div className="mb-2">
-              <div className="flex items-center gap-4 mb-2">
-                <div className="flex items-center gap-2">
-                  <label className="text-sm font-medium text-gray-700">원본언어:</label>
-                  <select 
-                    value={sourceLang} 
-                    onChange={(e) => {
-                      setSourceLang(e.target.value);
-                      const nextTab = settings.targetLanguages.find(lang => lang.code !== (e.target.value === 'auto' ? detectedLang1 : e.target.value));
-                      if (nextTab) setActiveTab(nextTab.code);
-                    }}
-                    className="px-3 py-1 border border-gray-300 rounded text-sm text-gray-900 bg-white"
-                  >
-                    {settings.sourceLanguages.map(lang => (
-                      <option key={lang.code} value={lang.code}>{lang.name}</option>
-                    ))}
-                  </select>
+                <div className="mb-2">
+                  <div className="flex items-center gap-4 mb-2">
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm font-medium text-gray-700">원본언어:</label>
+                      <select 
+                        value={sourceLang} 
+                        onChange={(e) => {
+                          setSourceLang(e.target.value);
+                          const nextTab = settings.targetLanguages.find(lang => lang.code !== (e.target.value === 'auto' ? detectedLang1 : e.target.value));
+                          if (nextTab) setActiveTab(nextTab.code);
+                        }}
+                        className="px-3 py-1 border border-gray-300 rounded text-sm text-gray-900 bg-white"
+                      >
+                        {settings.sourceLanguages.map(lang => (
+                          <option key={lang.code} value={lang.code}>{lang.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm font-medium text-gray-700">번역엔진:</label>
+                      <select 
+                        value={selectedEngine}
+                        onChange={(e) => setSelectedEngine(e.target.value)}
+                        className="px-3 py-1 border border-gray-300 rounded text-sm text-gray-900 bg-white"
+                      >
+                        {TRANSLATION_ENGINES.map(engine => (
+                          <option key={engine.code} value={engine.code}>
+                            {engine.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <div className="h-8 flex items-center">
+                    {shouldShowDetectedLang && (
+                      <div className="text-sm text-blue-600 font-semibold">
+                        감지된 언어: {langNameMap[detectedLang1] || detectedLang1}
+                      </div>
+                    )}
+                    {/* 언어 감지 중일 때 표시 */}
+                    {sourceText.trim().length > 0 && !shouldShowDetectedLang && (
+                      <div className="text-sm text-gray-500">언어 감지 중...</div>
+                    )}
+                  </div>
                 </div>
-                
-                <div className="flex items-center gap-2">
-                  <label className="text-sm font-medium text-gray-700">번역엔진:</label>
-                  <select 
-                    value={selectedEngine}
-                    onChange={(e) => setSelectedEngine(e.target.value)}
-                    className="px-3 py-1 border border-gray-300 rounded text-sm text-gray-900 bg-white"
-                  >
-                    {TRANSLATION_ENGINES.map(engine => (
-                      <option key={engine.code} value={engine.code}>
-                        {engine.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              
-              {shouldShowDetectedLang && (
-                <div className="mt-1 text-sm text-blue-600 font-semibold">
-                  감지된 언어: {langNameMap[detectedLang1] || detectedLang1}
-                </div>
-              )}
-              {/* 언어 감지 중일 때 표시 */}
-              {sourceText.trim().length > 0 && !shouldShowDetectedLang && (
-                <div className="mt-1 text-sm text-gray-500">언어 감지 중...</div>
-              )}
-            </div>
               </div>
               
                                       <textarea
@@ -359,9 +359,14 @@ export default function B2CHome() {
             {/* 2. 번역 결과 영역 */}
             <div className="flex-1 flex flex-col p-6 border-r border-gray-200">
               <div className="mb-4">
-                <h2 className="text-lg font-semibold text-gray-900 mb-2">
-                  번역 결과 ({langNameMap[activeTab] || activeTab})
-                </h2>
+                <div className="mb-2">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-2">
+                    번역 결과 ({langNameMap[activeTab] || activeTab})
+                  </h2>
+                  <div className="h-8 flex items-center">
+                    {/* 번역 결과 영역의 여백을 맞추기 위한 빈 공간 */}
+                  </div>
+                </div>
               </div>
               
                         <div className="h-96 overflow-y-auto mb-4 border border-gray-300 rounded-lg p-4 bg-white">
@@ -398,7 +403,12 @@ export default function B2CHome() {
             {/* 3. 검증 결과 영역 */}
             <div className="flex-1 flex flex-col p-6">
               <div className="mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">검증 결과</h2>
+                <div className="mb-2">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-2">검증 결과</h2>
+                  <div className="h-8 flex items-center">
+                    {/* 검증 결과 영역의 여백을 맞추기 위한 빈 공간 */}
+                  </div>
+                </div>
               </div>
               
                         <div className="h-96 overflow-y-auto bg-gray-50 rounded-lg border border-gray-200 p-4">
