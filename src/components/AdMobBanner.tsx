@@ -27,10 +27,10 @@ const AdMobBanner: React.FC<AdMobBannerProps> = ({
 
   // 실제 광고 ID로 교체할 때 사용
   const productionAdUnitIds = {
-    banner: 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX', // 실제 광고 ID로 교체
-    largeBanner: 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
-    mediumRectangle: 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
-    skyscraper: 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
+    banner: 'ca-app-pub-7286979091056475/6300978111', // 실제 광고 ID로 교체
+    largeBanner: 'ca-app-pub-7286979091056475/6300978111',
+    mediumRectangle: 'ca-app-pub-7286979091056475/6300978111',
+    skyscraper: 'ca-app-pub-7286979091056475/6300978111',
   };
 
   const getAdUnitId = () => {
