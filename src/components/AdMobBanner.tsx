@@ -17,55 +17,80 @@ const AdMobBanner: React.FC<AdMobBannerProps> = ({
   const [isAdLoaded, setIsAdLoaded] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
-  // AdMob 테스트 광고 ID들
+  // Google AdSense 테스트 광고 ID들 (공식)
   const testAdUnitIds = {
-    banner: 'ca-app-pub-3940256099942544/6300978111', // Android
-    largeBanner: 'ca-app-pub-3940256099942544/6300978111', // Android
-    mediumRectangle: 'ca-app-pub-3940256099942544/6300978111', // Android
-    skyscraper: 'ca-app-pub-3940256099942544/6300978111', // Android
+    horizontalBanner: 'ca-app-pub-3940256099942544/6300978111', // 테스트 배너 (728x90)
+    verticalSidebar: 'ca-app-pub-3940256099942544/6300978111', // 테스트 배너 (160x600)
   };
 
-  // 실제 광고 ID로 교체할 때 사용
+  // 실제 디스플레이 광고 단위 ID들
   const productionAdUnitIds = {
-    banner: 'ca-app-pub-7286979091056475/6300978111', // 실제 광고 ID로 교체
-    largeBanner: 'ca-app-pub-7286979091056475/6300978111',
-    mediumRectangle: 'ca-app-pub-7286979091056475/6300978111',
-    skyscraper: 'ca-app-pub-7286979091056475/6300978111',
+    // 수평형 광고 (가로형)
+    horizontalBanner: 'ca-app-pub-7286979091056475/9649584642', // 하단 수평 배너
+    
+    // 수직형 광고 (세로형)
+    verticalSidebar: 'ca-app-pub-7286979091056475/1439922138', // 오른쪽 사이드바 수직 배너
   };
 
   const getAdUnitId = () => {
-    return testAdUnitIds[adSize as keyof typeof testAdUnitIds] || testAdUnitIds.banner;
+    return testAdUnitIds[adSize as keyof typeof testAdUnitIds] || testAdUnitIds.horizontalBanner;
   };
 
   const getAdSize = () => {
     switch (adSize) {
-      case 'largeBanner':
-        return { width: 320, height: 100 };
-      case 'mediumRectangle':
-        return { width: 300, height: 250 };
-      case 'skyscraper':
-        return { width: 160, height: 600 };
+      // 수평형 광고 (가로형)
+      case 'horizontalBanner':
+        return { width: 728, height: 90 }; // 표준 수평 배너
+      
+      // 수직형 광고 (세로형)
+      case 'verticalSidebar':
+        return { width: 160, height: 600 }; // 사이드바 수직 배너
+      
       default:
-        return { width: 320, height: 50 };
+        return { width: 728, height: 90 }; // 기본값
     }
   };
 
   const adSizeStyle = getAdSize();
 
+  // 로컬호스트 확인 (클라이언트에서만)
+  const [isLocalhost, setIsLocalhost] = useState(false);
+
   useEffect(() => {
     // 클라이언트 사이드에서만 실행
     setIsClient(true);
     
-    // 로컬호스트에서는 테스트 광고 시뮬레이션
-    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    // 로컬호스트 확인
+    const checkLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    setIsLocalhost(checkLocalhost);
     
-    if (isLocalhost) {
-      // 로컬호스트에서는 3초 후 광고 로드 시뮬레이션
-      setTimeout(() => {
-        setIsAdLoaded(true);
-      }, 3000);
+    if (checkLocalhost) {
+      // 로컬호스트에서는 실제 테스트 광고 로드
+      const loadTestAd = async () => {
+        if (typeof window !== 'undefined' && window.adsbygoogle) {
+          try {
+            (window.adsbygoogle = window.adsbygoogle || []).push({});
+            setTimeout(() => {
+              setIsAdLoaded(true);
+            }, 2000);
+          } catch (error) {
+            console.log('테스트 광고 로드 중 오류:', error);
+            // 오류 시에도 시뮬레이션 표시
+            setTimeout(() => {
+              setIsAdLoaded(true);
+            }, 3000);
+          }
+        } else {
+          // adsbygoogle이 없으면 시뮬레이션
+          setTimeout(() => {
+            setIsAdLoaded(true);
+          }, 3000);
+        }
+      };
+
+      loadTestAd();
     } else {
-      // 실제 AdMob SDK 로드
+      // 실제 서버에서는 실제 광고 로드
       const loadAdMob = async () => {
         if (typeof window !== 'undefined' && window.adsbygoogle) {
           try {
@@ -128,13 +153,13 @@ const AdMobBanner: React.FC<AdMobBannerProps> = ({
         </div>
       )}
       
-      {/* 실제 Google AdSense 광고 (로컬호스트가 아닐 때만) */}
-      {isClient && !window.location.hostname.includes('localhost') && (
+      {/* 실제 Google AdSense 광고 */}
+      {isClient && (
         <ins
           className="adsbygoogle"
           style={{ display: 'block' }}
           data-ad-client="ca-pub-7286979091056475"
-          data-ad-slot="6300978111"
+          data-ad-slot={isLocalhost ? "6300978111" : adUnitId.split('/')[1]}
           data-ad-format="auto"
           data-full-width-responsive="true"
         />

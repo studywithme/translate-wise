@@ -6,6 +6,7 @@ import { ClipboardDocumentIcon, Cog6ToothIcon, ChatBubbleLeftRightIcon } from '@
 import SettingsModal from '@/components/SettingsModal';
 import { useSettings } from '@/contexts/SettingsContext';
 import AdMobBanner from '@/components/AdMobBanner';
+import ConsentBanner from '@/components/ConsentBanner';
 
 // 지원 언어 목록
 const LANGUAGES = [
@@ -425,8 +426,8 @@ export default function B2CHome() {
         {/* 오른쪽 광고 (데스크톱에서만 표시) */}
         <div className="hidden lg:flex w-40 flex-shrink-0 flex justify-center items-start pt-6">
           <AdMobBanner 
-            adUnitId="ca-app-pub-3940256099942544/6300978111"
-            adSize="skyscraper"
+            adUnitId="ca-app-pub-7286979091056475/3456789012"
+            adSize="verticalSidebar"
             className="w-160px"
           />
         </div>
@@ -435,14 +436,27 @@ export default function B2CHome() {
       {/* 하단 광고 */}
       <div className="mt-8 flex justify-center">
         <AdMobBanner 
-          adUnitId="ca-app-pub-7286979091056475/6300978111"
-          adSize="largeBanner"
+          adUnitId="ca-app-pub-7286979091056475/1234567890"
+          adSize="horizontalBanner"
           className="w-full max-w-728px"
         />
       </div>
       
       {/* 언어 설정 모달 */}
       <SettingsModal />
+      
+      {/* 동의 배너 */}
+      <ConsentBanner onConsentChange={(consent) => {
+        if (consent) {
+          // 동의 시 광고 로드
+          if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+            window.gtag('consent', 'update', {
+              'ad_storage': 'granted',
+              'analytics_storage': 'granted'
+            });
+          }
+        }
+      }} />
     </div>
   );
 }
