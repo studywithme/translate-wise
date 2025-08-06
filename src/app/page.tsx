@@ -426,7 +426,7 @@ export default function B2CHome() {
         {/* 오른쪽 광고 (데스크톱에서만 표시) */}
         <div className="hidden lg:flex w-40 flex-shrink-0 flex justify-center items-start pt-6">
           <AdMobBanner 
-            adUnitId="ca-app-pub-7286979091056475/3456789012"
+            adUnitId="ca-app-pub-7286979091056475/1439922138"
             adSize="verticalSidebar"
             className="w-160px"
           />
@@ -436,7 +436,7 @@ export default function B2CHome() {
       {/* 하단 광고 */}
       <div className="mt-8 flex justify-center">
         <AdMobBanner 
-          adUnitId="ca-app-pub-7286979091056475/1234567890"
+          adUnitId="ca-app-pub-7286979091056475/9649584642"
           adSize="horizontalBanner"
           className="w-full max-w-728px"
         />
